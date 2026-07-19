@@ -49,7 +49,7 @@ AI Agent (Workbuddy)
 
 > 也支持ClaudeCode, Codex, OpenCode等其他支持MCP的客户端
 
-### 方式一：uvx 线运行（推荐）
+### 方式一：uvx 在线运行（推荐）
 
 在 Workbuddy 中设置 → MCP → 添加 编辑JSON，在`mcpServers`中添加`cubism-editor`：
 
