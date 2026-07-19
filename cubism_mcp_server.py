@@ -406,5 +406,10 @@ async def main():
         )
 
 
-if __name__ == "__main__":
+def cli():
+    """Entry point for uvx / pip install"""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    cli()

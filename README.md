@@ -47,17 +47,52 @@ AI Agent (CodeBuddy / Claude Code)
 
 ## 安装
 
+### 方式一：uvx 在线运行（推荐）
+
+无需克隆仓库，一行 JSON 配置即可：
+
+```bash
+uvx --from git+https://github.com/nana7chi/CubismExternalEditMCP.git cubism-mcp
+```
+
+### 方式二：本地安装
+
 ```bash
 git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 cd CubismExternalEditMCP
+pip install .
+# 然后直接用 cubism-mcp 命令运行
+```
+
+或传统方式：
+
+```bash
 pip install -r requirements.txt
+python cubism_mcp_server.py
 ```
 
 ## 配置 MCP 客户端
 
 ### CodeBuddy
 
-设置 → MCP → 添加，粘贴以下 JSON（修改 `cwd` 为实际路径）：
+设置 → MCP → 添加，粘贴以下 JSON。
+
+**uvx 在线运行（推荐）**：
+
+```json
+{
+  "mcpServers": {
+    "cubism-editor": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/nana7chi/CubismExternalEditMCP.git", "cubism-mcp"],
+      "description": "Cubism Editor 建模工具"
+    }
+  }
+}
+```
+
+**本地克隆运行**（修改 `cwd` 为实际路径）：
 
 ```json
 {
@@ -76,6 +111,21 @@ pip install -r requirements.txt
 ### Claude Code
 
 在 `~/.claude/mcp.json` 添加：
+
+**uvx 在线运行**：
+
+```json
+{
+  "mcpServers": {
+    "cubism-editor": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/nana7chi/CubismExternalEditMCP.git", "cubism-mcp"]
+    }
+  }
+}
+```
+
+**本地克隆运行**：
 
 ```json
 {
