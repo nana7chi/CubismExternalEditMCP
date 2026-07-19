@@ -1,25 +1,16 @@
 """
 Cubism Editor External API MCP Server
 将 Live2D Cubism Editor 的外部应用集成 API 封装为 MCP 工具，
-供 Claude Code / Codex CLI 等 AI Agent 直接调用。
+供 Workbuddy 等 AI Agent 直接调用。
 
 依赖: pip install mcp websockets pydantic nest_asyncio
 
-配置 Claude Code:
-  在 ~/.claude/mcp.json 添加:
-  {
-    "mcpServers": {
-      "cubism-editor": {
-        "command": "python",
-        "args": ["C:/path/to/cubism_mcp_server.py"]
-      }
-    }
-  }
-
 使用前:
-  1. 启动 Cubism Editor 5.4 alpha 并打开模型
-  2. 文件菜单 → 外部应用集成设置 → 端口 22033 → 开启开关
-  3. 连接后在对话框勾选 Allow + Edit 权限
+  1. 启动 Cubism Editor 并打开模型
+  2. 菜单「文件」→「外部应用程序集成的设置」→ 确保「使用」开关已开启
+  3. 当 MCP 首次连接时，Editor 会弹出「外部应用程序集成」对话框，
+     看到 "MCP-CubismAgent" 后，依次勾选 Allow 和 Edit 权限并点 OK。
+     如果没看到弹窗，检查 Editor 右下角是否有闪烁的外部应用图标。
 """
 
 import asyncio
@@ -27,10 +18,8 @@ import json
 import os
 import time
 import uuid
-from typing import Any, Optional
 
 import websockets
-from pydantic import BaseModel
 import nest_asyncio
 
 from mcp.server.lowlevel.server import NotificationOptions
@@ -177,10 +166,28 @@ class CEPluginClient:
 
     async def ensureReady(self):
         if not self.isRegistered:
-            return {"Error": {"ErrorType": "NotRegistered", "Message": "未连接到 Editor，请先启动 Editor 并开启外部应用集成"}}
+            return {"Error": {
+                "ErrorType": "NotRegistered",
+                "Message": "未连接到 Cubism Editor。",
+                "Steps": [
+                    "1. 确保已启动 Cubism Editor 并打开了一个模型",
+                    "2. 点击菜单「文件」→「外部应用程序集成的设置」",
+                    "3. 确认「使用」开关已开启（端口默认 22033）",
+                    "4. 如果已开启但仍无法连接，请尝试关闭后重新开启"
+                ]
+            }}
         isAuth = await self.sendAndWait("GetIsApproval", {})
         if not isAuth.get("Result", False):
-            return {"Error": {"ErrorType": "NotApproved", "Message": "请在 Editor 外部应用集成对话框勾选 Allow"}}
+            return {"Error": {
+                "ErrorType": "NotApproved",
+                "Message": "MCP 已连接到 Editor，但需要在 Editor 中授权。",
+                "Steps": [
+                    "1. 切换到 Cubism Editor 窗口，应该能看到「外部应用程序集成」弹窗",
+                    "2. 找到「MCP-CubismAgent」，勾选 Allow 权限",
+                    "3. 点击 OK 确认",
+                    "4. 如果没看到弹窗，检查 Editor 右下角任务栏是否有闪烁的外部应用图标，点击打开"
+                ]
+            }}
         return None
 
     async def ensureEditReady(self):
@@ -189,7 +196,15 @@ class CEPluginClient:
             return err
         isEdit = await self.sendAndWait("GetIsEditApproval", {})
         if not isEdit.get("Result", False):
-            return {"Error": {"ErrorType": "EditNotApproved", "Message": "请在 Editor 对话框勾选 Edit 权限"}}
+            return {"Error": {
+                "ErrorType": "EditNotApproved",
+                "Message": "Allow 权限已授权，但缺少 Edit 修改权限。",
+                "Steps": [
+                    "1. 切换到 Cubism Editor 窗口的「外部应用程序集成」对话框",
+                    "2. 找到「MCP-CubismAgent」，额外勾选 Edit 权限",
+                    "3. 点击 OK 确认"
+                ]
+            }}
         return None
 
 
@@ -202,7 +217,7 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="cubism_status",
-            description="检查与 Cubism Editor 的连接状态（是否连接、是否授权、是否编辑授权）",
+            description="检查与 Cubism Editor 的连接及授权状态。未连接或未授权时会返回具体指引。",
             inputSchema={"type": "object", "properties": {}}
         ),
         Tool(
@@ -280,6 +295,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         await asyncio.sleep(1)
 
     if name == "cubism_status":
+        if client.websocket is None or not client.isRegistered:
+            return [TextContent(type="text", text=json.dumps({
+                "connected": client.websocket is not None,
+                "registered": client.isRegistered,
+                "approved": False,
+                "edit_approved": False,
+                "port": DEFAULT_PORT,
+                "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。"
+            }, ensure_ascii=False, indent=2))]
         isEdit = await client.sendAndWait("GetIsEditApproval", {})
         isAuth = await client.sendAndWait("GetIsApproval", {})
         return [TextContent(type="text", text=json.dumps({
@@ -287,7 +311,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             "registered": client.isRegistered,
             "approved": isAuth.get("Result", False),
             "edit_approved": isEdit.get("Result", False),
-            "port": DEFAULT_PORT
+            "port": DEFAULT_PORT,
+            "hint": "已连接。如需编辑模型，请确保对话框中 Allow 和 Edit 都已勾选。"
         }, ensure_ascii=False, indent=2))]
 
     if name == "cubism_get_model_uid":
