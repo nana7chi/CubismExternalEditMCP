@@ -4,14 +4,14 @@
 [![MCP](https://img.shields.io/badge/MCP-1.0-8A2BE2)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-将 Live2D Cubism Editor 的外部应用集成 API 封装为 **MCP (Model Context Protocol)** 工具，让 AI Agent（如 CodeBuddy、Claude Code）通过自然语言操控 Cubism Editor 进行建模操作。
+将 Live2D Cubism Editor 的外部应用集成 API 封装为 **MCP (Model Context Protocol)** 工具，让 AI Agent（如 Workbuddy）通过自然语言操控 Cubism Editor 进行建模操作。
 
 > 官方参考文档：[Cubism Editor 外部应用集成 API](https://cubism.live2d.com/editor-alpha/doc/manual/alpha1/zh/external-api-intergration/index.html)
 
 ## 架构
 
 ```
-AI Agent (CodeBuddy / Claude Code)
+AI Agent (Workbuddy)
     │
     │ stdio (MCP Protocol)
     │
@@ -45,39 +45,13 @@ AI Agent (CodeBuddy / Claude Code)
 | Cubism Editor | 5.4 Alpha（有效期至 2026-09-14） |
 |操作系统 | Windows / macOS |
 
-## 安装
-
-### 方式一：uvx 在线运行（推荐）
-
-无需克隆仓库，一行 JSON 配置即可：
-
-```bash
-uvx --from git+https://github.com/nana7chi/CubismExternalEditMCP.git cubism-mcp
-```
-
-### 方式二：本地安装
-
-```bash
-git clone https://github.com/nana7chi/CubismExternalEditMCP.git
-cd CubismExternalEditMCP
-pip install .
-# 然后直接用 cubism-mcp 命令运行
-```
-
-或传统方式：
-
-```bash
-pip install -r requirements.txt
-python cubism_mcp_server.py
-```
-
 ## 配置 MCP 客户端
 
-### CodeBuddy
+> 也支持ClaudeCode, Codex, OpenCode等其他支持MCP的客户端
 
-设置 → MCP → 添加，粘贴以下 JSON。
+### 方式一：uvx 线运行（推荐）
 
-**uvx 在线运行（推荐）**：
+在 Workbuddy 中设置 → MCP → 添加 编辑JSON，在`mcpServers`中添加`cubism-editor`：
 
 ```json
 {
@@ -86,13 +60,21 @@ python cubism_mcp_server.py
       "type": "stdio",
       "command": "uvx",
       "args": ["--from", "git+https://github.com/nana7chi/CubismExternalEditMCP.git", "cubism-mcp"],
-      "description": "Cubism Editor 建模工具"
+      "description": "Cubism Editor MCP"
     }
   }
 }
 ```
 
-**本地克隆运行**（修改 `cwd` 为实际路径）：
+### 方式二：本地克隆运行
+
+1. 克隆源码到本地
+
+```bash
+git clone https://github.com/nana7chi/CubismExternalEditMCP.git
+```
+
+2. 在 Workbuddy 中设置 → MCP → 添加 编辑JSON，在`mcpServers`中添加`cubism-editor`（修改 `cwd` 为实际路径）：
 
 ```json
 {
@@ -101,39 +83,8 @@ python cubism_mcp_server.py
       "type": "stdio",
       "command": "python",
       "args": ["cubism_mcp_server.py"],
-      "cwd": "J:/CubismExternalEditMCP",
-      "description": "Cubism Editor 建模工具"
-    }
-  }
-}
-```
-
-### Claude Code
-
-在 `~/.claude/mcp.json` 添加：
-
-**uvx 在线运行**：
-
-```json
-{
-  "mcpServers": {
-    "cubism-editor": {
-      "command": "uvx",
-      "args": ["--from", "git+https://github.com/nana7chi/CubismExternalEditMCP.git", "cubism-mcp"]
-    }
-  }
-}
-```
-
-**本地克隆运行**：
-
-```json
-{
-  "mcpServers": {
-    "cubism-editor": {
-      "command": "python",
-      "args": ["cubism_mcp_server.py"],
-      "cwd": "/path/to/CubismExternalEditMCP"
+      "cwd": "J:/修改为实际路径/CubismExternalEditMCP"
+      "description": "Cubism Editor MCP"
     }
   }
 }
@@ -145,6 +96,8 @@ python cubism_mcp_server.py
 2. **文件 → 外部应用集成设置** → 端口 `22033` → 开启
 3. 弹出对话框**勾选 Allow + Edit**，确认
 4. 在 AI Agent 中通过自然语言操控 Editor
+
+![外部应用程序集成的设置](外部应用程序集成的设置.png)
 
 ## 可用工具
 
