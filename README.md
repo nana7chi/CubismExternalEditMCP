@@ -1,8 +1,10 @@
 # Cubism External Edit MCP
 
-[![Python](https://img.shields.io/badge/python-%3C%3D3.13-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-1.0-8A2BE2)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+[中文](README.md) | [English](README_EN.md)
 
 将 Live2D Cubism Editor 的外部应用集成 API 封装为 **MCP (Model Context Protocol)** 工具，让 AI Agent（如 Workbuddy）通过自然语言操控 Cubism Editor 进行建模操作。
 
@@ -41,7 +43,7 @@ AI Agent (Workbuddy)
 
 | 组件 | 版本 |
 |------|------|
-| Python | ≤ 3.13 |
+| Python | ≥ 3.10 |
 | Cubism Editor | 5.4 Alpha（有效期至 2026-09-14） |
 |操作系统 | Windows / macOS |
 

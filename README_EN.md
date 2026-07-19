@@ -1,6 +1,6 @@
 # Cubism External Edit MCP
 
-[![Python](https://img.shields.io/badge/python-%3C%3D3.13-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-1.0-8A2BE2)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -43,7 +43,7 @@ AI Agent (Workbuddy)
 
 | Component | Version |
 |-----------|---------|
-| Python | ≤ 3.13 |
+| Python | ≥ 3.10 |
 | Cubism Editor | 5.4 Alpha (valid until 2026-09-14) |
 | OS | Windows / macOS |
 

@@ -2,7 +2,7 @@
 name = "cubism-mcp"
 version = "1.0.0"
 description = "MCP server for Live2D Cubism Editor external API integration"
-requires-python = ">=3.10,<=3.13"
+requires-python = ">=3.10,<=3.14"
 license = {text = "MIT"}
 dependencies = [
     "mcp>=1.0.0",
