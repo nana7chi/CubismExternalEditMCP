@@ -6,6 +6,8 @@
 
 将 Live2D Cubism Editor 的外部应用集成 API 封装为 **MCP (Model Context Protocol)** 工具，让 AI Agent（如 CodeBuddy、Claude Code）通过自然语言操控 Cubism Editor 进行建模操作。
 
+> 官方参考文档：[Cubism Editor 外部应用集成 API](https://cubism.live2d.com/editor-alpha/doc/manual/alpha1/zh/external-api-intergration/index.html)
+
 ## 架构
 
 ```
