@@ -9,7 +9,7 @@ Cubism Editor External API MCP Server
   1. 启动 Cubism Editor 并打开模型
   2. 菜单「文件」→「外部应用程序集成的设置」→ 确保「使用」开关已开启
   3. 当 MCP 首次连接时，Editor 会弹出「外部应用程序集成」对话框，
-     看到 "MCP-CubismAgent" 后，依次勾选 Allow 和 Edit 权限并点 OK。
+     看到 "cubism-mcp" 后，依次勾选 Allow 和 Edit 权限并点 OK。
      如果没看到弹窗，检查 Editor 右下角是否有闪烁的外部应用图标。
 """
 
@@ -44,7 +44,7 @@ class CEPluginClient:
         if os.path.isfile(TOKEN_FILENAME):
             with open(TOKEN_FILENAME, "r") as f:
                 self.TOKEN = f.read()
-        self.appName = "MCP-CubismAgent"
+        self.appName = "cubism-mcp"
         self.responseHandlers = {}
         self.eventHandlers = {}
         self.errorHandlers = {}
@@ -183,7 +183,7 @@ class CEPluginClient:
                 "Message": "MCP 已连接到 Editor，但需要在 Editor 中授权。",
                 "Steps": [
                     "1. 切换到 Cubism Editor 窗口，应该能看到「外部应用程序集成」弹窗",
-                    "2. 找到「MCP-CubismAgent」，勾选 Allow 权限",
+                    "2. 找到「cubism-mcp」，勾选 Allow 权限",
                     "3. 点击 OK 确认",
                     "4. 如果没看到弹窗，检查 Editor 右下角任务栏是否有闪烁的外部应用图标，点击打开"
                 ]
@@ -201,7 +201,7 @@ class CEPluginClient:
                 "Message": "Allow 权限已授权，但缺少 Edit 修改权限。",
                 "Steps": [
                     "1. 切换到 Cubism Editor 窗口的「外部应用程序集成」对话框",
-                    "2. 找到「MCP-CubismAgent」，额外勾选 Edit 权限",
+                    "2. 找到「cubism-mcp」，额外勾选 Edit 权限",
                     "3. 点击 OK 确认"
                 ]
             }}
@@ -209,7 +209,7 @@ class CEPluginClient:
 
 
 client = CEPluginClient()
-server = Server("cubism-editor")
+server = Server("cubism-mcp")
 
 
 @server.list_tools()
@@ -421,7 +421,7 @@ async def main():
             read_stream,
             write_stream,
             InitializationOptions(
-                server_name="cubism-editor",
+                server_name="cubism-mcp",
                 server_version="1.0.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),

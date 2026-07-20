@@ -18,7 +18,7 @@ AI Agent (Workbuddy)
     │ stdio (MCP Protocol)
     │
 ┌───▼──────────────────────┐
-│  cubism_mcp_server.py    │  ← This Project
+│  cubism_mcp.py    │  ← This Project
 │  (MCP Server, 9 Tools)   │
 └───┬──────────────────────┘
     │
@@ -53,12 +53,12 @@ AI Agent (Workbuddy)
 
 ### Option 1: uvx One-Line (Recommended)
 
-In Workbuddy: Settings → MCP → Edit JSON → add `cubism-editor` under `mcpServers`:
+In Workbuddy: Settings → MCP → Edit JSON → add `cubism-mcp` under `mcpServers`:
 
 ```json
 {
   "mcpServers": {
-    "cubism-editor": {
+    "cubism-mcp": {
       "type": "stdio",
       "command": "uvx",
       "args": ["--from", "git+https://github.com/nana7chi/CubismExternalEditMCP.git", "cubism-mcp"],
@@ -76,15 +76,15 @@ In Workbuddy: Settings → MCP → Edit JSON → add `cubism-editor` under `mcpS
 git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 ```
 
-2. In Workbuddy: Settings → MCP → Edit JSON → add `cubism-editor` under `mcpServers` (change `cwd` to the actual path):
+2. In Workbuddy: Settings → MCP → Edit JSON → add `cubism-mcp` under `mcpServers` (change `cwd` to the actual path):
 
 ```json
 {
   "mcpServers": {
-    "cubism-editor": {
+    "cubism-mcp": {
       "type": "stdio",
       "command": "python",
-      "args": ["cubism_mcp_server.py"],
+      "args": ["cubism_mcp.py"],
       "cwd": "J:/change/to/your/actual/path/CubismExternalEditMCP",
       "description": "Cubism Editor MCP"
     }
@@ -100,6 +100,17 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 4. Control the Editor through natural language in your AI Agent
 
 ![External App Integration Settings](外部应用程序集成的设置.png)
+
+## Example Prompts
+
+```
+"List the parameter structure of the current model"
+"Inspect the part hierarchy"
+"Change the Core part label to blue"
+"Create parameter ParamsTest, ID ParamTest, range 0-1, default 0.5"
+"Batch add 3 keyframes to ParamAngleX"
+"Select the GlobalXY deformer and move it to position (3000, 4000)"
+```
 
 ## Available Tools
 
@@ -131,22 +142,11 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 
 `AddParameter`, `EditParameter`, `DeleteParameter`, `AddParameterGroup`, `EditParameterGroup`, `AddPart`, `EditPart`, `AddWarpDeformer`, `AddRotationDeformer`, `EditWarpDeformer`, `EditArtMesh`, `EditGlue`, `MoveParameter`, `MoveParameterGroup`, `AddParameterKey`, `DeleteParameterKey`, `MoveParameterKey`, `DeleteObject`, `MoveObjectOnPartsPalette`
 
-## Examples
-
-```
-"List the parameter structure of the current model"
-"Inspect the part hierarchy"
-"Change the Core part label to blue"
-"Create parameter ParamsTest, ID ParamTest, range 0-1, default 0.5"
-"Batch add 3 keyframes to ParamAngleX"
-"Select the GlobalXY deformer and move it to position (3000, 4000)"
-```
-
 ## Troubleshooting
 
 | Symptom | Cause | Solution |
 |---------|-------|----------|
-| MCP status red | Wrong Python path, missing dependencies, or incorrect `cwd` | Verify Python ≤ 3.13, dependencies installed, and `cwd` path |
+| MCP status red | Wrong Python path, missing dependencies, or incorrect `cwd` | Verify Python ≥ 3.10, dependencies installed, and `cwd` path |
 | Not connected to Editor | Editor not running or external integration not enabled | Launch Editor → open model → enable external integration |
 | Not approved | Allow not checked in dialog | Check Allow in external integration dialog |
 | Edit errors | Edit not checked in dialog | Check Edit in external integration dialog |
@@ -157,7 +157,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 
 ```bash
 # Run directly for testing
-python cubism_mcp_server.py
+python cubism_mcp.py
 
 # Install dependencies
 pip install -r requirements.txt

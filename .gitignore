@@ -21,3 +21,6 @@ token.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# codebuddy
+.codebuddy/
