@@ -61,7 +61,7 @@ class CEPluginClient:
                 await asyncio.sleep(0.2)
             else:
                 try:
-                    await self.on_receieve(await self.websocket.recv())
+                    await self.on_receive(await self.websocket.recv())
                 except websockets.ConnectionClosed:
                     self.websocket = None
                     self.isRegistered = False
@@ -112,7 +112,7 @@ class CEPluginClient:
         response = None
         isReceived = False
 
-        async def onReceieve(responseData):
+        async def onReceive(responseData):
             nonlocal response, isReceived
             response = responseData
             isReceived = True
@@ -122,7 +122,7 @@ class CEPluginClient:
             response = {"Error": errorData}
             isReceived = True
 
-        await self.send(method, data, responseHandler=onReceieve, errorHandler=onError)
+        await self.send(method, data, responseHandler=onReceive, errorHandler=onError)
         startTime = time.monotonic()
         while not isReceived:
             await asyncio.sleep(0.05)
@@ -131,7 +131,7 @@ class CEPluginClient:
         return response
 
     async def registerPlugin(self):
-        async def onReceieve(data):
+        async def onReceive(data):
             newToken = data.get("Token", "")
             if newToken and newToken != self.TOKEN:
                 self.TOKEN = newToken
@@ -142,9 +142,9 @@ class CEPluginClient:
         await self.send("RegisterPlugin", {
             "Token": self.TOKEN,
             "Name": self.appName
-        }, responseHandler=onReceieve)
+        }, responseHandler=onReceive)
 
-    async def on_receieve(self, message: str):
+    async def on_receive(self, message: str):
         jsonData = json.loads(message)
         requestType = jsonData.get("Type")
         method = jsonData.get("Method")
