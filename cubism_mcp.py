@@ -65,7 +65,7 @@ class CEPluginClient:
                 except websockets.ConnectionClosed:
                     self.websocket = None
                     self.isRegistered = False
-                    asyncio.ensure_future(self.connectWithRetry())
+                    self._ensure_reconnect()
                 except Exception:
                     await asyncio.sleep(0.5)
 
@@ -87,6 +87,11 @@ class CEPluginClient:
             if ok:
                 break
             await asyncio.sleep(retryInterval)
+
+    def _ensure_reconnect(self):
+        """确保同一时间只有一个重连任务在运行，避免并发重连互相关闭对方的连接"""
+        if self._connect_task is None or self._connect_task.done():
+            self._connect_task = asyncio.ensure_future(self.connectWithRetry())
 
     async def sendRaw(self, data: dict):
         await self.websocket.send(json.dumps(data))
