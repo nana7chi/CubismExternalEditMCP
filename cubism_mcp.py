@@ -348,8 +348,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "port": DEFAULT_PORT,
                 "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。"
             }, ensure_ascii=False, indent=2))]
-        isEdit = await client.sendAndWait("GetIsEditApproval", {})
         isAuth = await client.sendAndWait("GetIsApproval", {})
+        isEdit = await client.sendAndWait("GetIsEditApproval", {})
         return [TextContent(type="text", text=json.dumps({
             "connected": client.websocket is not None,
             "registered": client.isRegistered,
