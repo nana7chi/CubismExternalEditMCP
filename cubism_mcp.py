@@ -16,7 +16,6 @@ Cubism Editor External API MCP Server
 import asyncio
 import json
 import os
-import time
 import uuid
 
 import websockets
@@ -114,26 +113,36 @@ class CEPluginClient:
         })
 
     async def sendAndWait(self, method: str, data: dict, timeout: float = 15) -> dict:
-        response = None
-        isReceived = False
+        guid = uuid.uuid4().hex
+        fut = asyncio.get_running_loop().create_future()
 
         async def onReceive(responseData):
-            nonlocal response, isReceived
-            response = responseData
-            isReceived = True
+            if not fut.done():
+                fut.set_result(responseData)
 
         async def onError(errorData):
-            nonlocal response, isReceived
-            response = {"Error": errorData}
-            isReceived = True
+            if not fut.done():
+                fut.set_result({"Error": errorData})
 
-        await self.send(method, data, responseHandler=onReceive, errorHandler=onError)
-        startTime = time.monotonic()
-        while not isReceived:
-            await asyncio.sleep(0.05)
-            if timeout > 0 and time.monotonic() - startTime > timeout:
-                return {"Error": {"ErrorType": "Timeout", "Message": f"{method} timed out"}}
-        return response
+        self.responseHandlers[guid] = onReceive
+        self.errorHandlers[guid] = onError
+        try:
+            await self.sendRaw({
+                "Version": "1.1.0",
+                "RequestId": guid,
+                "Type": "Request",
+                "Method": method,
+                "Data": data
+            })
+            if timeout > 0:
+                return await asyncio.wait_for(fut, timeout)
+            return await fut
+        except asyncio.TimeoutError:
+            return {"Error": {"ErrorType": "Timeout", "Message": f"{method} timed out"}}
+        finally:
+            # 无论响应、超时还是异常，都清理 handler，避免泄漏和迟到响应误触发
+            self.responseHandlers.pop(guid, None)
+            self.errorHandlers.pop(guid, None)
 
     async def registerPlugin(self):
         async def onReceive(data):
