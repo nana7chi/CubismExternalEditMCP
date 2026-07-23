@@ -3,7 +3,7 @@ Cubism Editor External API MCP Server
 将 Live2D Cubism Editor 的外部应用集成 API 封装为 MCP 工具，
 供 Workbuddy 等 AI Agent 直接调用。
 
-依赖: pip install mcp websockets pydantic nest_asyncio
+依赖见 pyproject.toml（pip install . 或 uvx 运行时自动安装）
 
 使用前:
   1. 启动 Cubism Editor 并打开模型
@@ -19,15 +19,12 @@ import os
 import uuid
 
 import websockets
-import nest_asyncio
 
 from mcp.server.lowlevel.server import NotificationOptions
 from mcp.server.lowlevel.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
-
-nest_asyncio.apply()
 
 DEFAULT_PORT = 22033
 URL = "localhost"
