@@ -93,6 +93,8 @@ class CEPluginClient:
             self._connect_task = asyncio.ensure_future(self.connectWithRetry())
 
     async def sendRaw(self, data: dict):
+        if self.websocket is None:
+            raise ConnectionError("未连接到 Cubism Editor")
         await self.websocket.send(json.dumps(data))
 
     async def send(self, method: str, data: dict,
@@ -139,6 +141,8 @@ class CEPluginClient:
             return await fut
         except asyncio.TimeoutError:
             return {"Error": {"ErrorType": "Timeout", "Message": f"{method} timed out"}}
+        except ConnectionError as e:
+            return {"Error": {"ErrorType": "NotConnected", "Message": str(e)}}
         finally:
             # 无论响应、超时还是异常，都清理 handler，避免泄漏和迟到响应误触发
             self.responseHandlers.pop(guid, None)
