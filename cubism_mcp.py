@@ -34,6 +34,18 @@ URL = "localhost"
 # token 存到用户目录而非包安装目录：uvx 缓存清理或版本更新后安装目录会变化，导致 token 丢失需重新授权
 TOKEN_FILENAME = os.path.join(os.path.expanduser("~"), ".cubism-mcp", "token.txt")
 
+# 支持的编辑 API 列表，用于 inputSchema 的 enum 约束，让客户端在发送前拦截无效 action
+EDIT_ACTIONS = [
+    "AddParameter", "EditParameter", "DeleteParameter",
+    "AddParameterGroup", "EditParameterGroup",
+    "AddPart", "EditPart",
+    "AddWarpDeformer", "AddRotationDeformer", "EditWarpDeformer",
+    "EditArtMesh", "EditGlue",
+    "MoveParameter", "MoveParameterGroup",
+    "AddParameterKey", "DeleteParameterKey", "MoveParameterKey",
+    "DeleteObject", "MoveObjectOnPartsPalette",
+]
+
 
 class CEPluginClient:
     """Cubism Editor WebSocket 客户端（基于官方 ceplugin.py 改写）"""
@@ -278,7 +290,7 @@ async def list_tools() -> list[Tool]:
             name="cubism_edit",
             description="执行编辑操作。会自动处理 EditBegin/EditEnd。action 指定具体编辑 API，params 是该 API 的参数（不含 ModelUID，会自动填充）。常用 action: AddParameter, EditParameter, DeleteParameter, AddParameterGroup, EditParameterGroup, AddPart, EditPart, AddWarpDeformer, AddRotationDeformer, EditWarpDeformer, EditArtMesh, EditGlue, MoveParameter, MoveParameterGroup, AddParameterKey, DeleteParameterKey, MoveParameterKey, DeleteObject, MoveObjectOnPartsPalette",
             inputSchema={"type": "object", "properties": {
-                "action": {"type": "string", "description": "编辑 API 名称，如 AddParameter / EditPart / AddWarpDeformer"},
+                "action": {"type": "string", "enum": EDIT_ACTIONS, "description": "编辑 API 名称，如 AddParameter / EditPart / AddWarpDeformer"},
                 "params": {"type": "object", "description": "编辑 API 的参数对象（无需 ModelUID，自动填充）"}
             }, "required": ["action", "params"]}
         ),
@@ -289,7 +301,7 @@ async def list_tools() -> list[Tool]:
                 "actions": {"type": "array", "items": {
                     "type": "object",
                     "properties": {
-                        "action": {"type": "string"},
+                        "action": {"type": "string", "enum": EDIT_ACTIONS},
                         "params": {"type": "object"}
                     },
                     "required": ["action", "params"]
