@@ -15,7 +15,9 @@ Cubism Editor External API MCP Server
 
 import asyncio
 import json
+import logging
 import os
+import sys
 import uuid
 
 import websockets
@@ -25,6 +27,11 @@ from mcp.server.lowlevel.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
+
+# MCP 使用 stdio 协议，日志必须输出到 stderr，绝不能污染 stdout
+logging.basicConfig(stream=sys.stderr, level=logging.INFO,
+                    format="[cubism-mcp] %(levelname)s %(message)s")
+logger = logging.getLogger("cubism-mcp")
 
 DEFAULT_PORT = 22033
 URL = "localhost"
@@ -72,10 +79,12 @@ class CEPluginClient:
                 try:
                     await self.on_receive(await self.websocket.recv())
                 except websockets.ConnectionClosed:
+                    logger.info("与 Cubism Editor 的连接断开，准备重连")
                     self.websocket = None
                     self.isRegistered = False
                     self._ensure_reconnect()
                 except Exception:
+                    logger.exception("处理 Editor 消息时出错")
                     await asyncio.sleep(0.5)
 
     async def connect(self, port: int = DEFAULT_PORT):
@@ -85,6 +94,7 @@ class CEPluginClient:
             self.websocket = await websockets.connect(self.uri(port))
             await self.registerPlugin()
         except Exception as e:
+            logger.warning(f"连接 Cubism Editor 失败: {e}")
             self.websocket = None
             return False
         return True
@@ -167,6 +177,7 @@ class CEPluginClient:
                 with open(TOKEN_FILENAME, "w") as f:
                     f.write(newToken)
             self.isRegistered = True
+            logger.info("已注册到 Cubism Editor")
 
         await self.send("RegisterPlugin", {
             "Token": self.TOKEN,
