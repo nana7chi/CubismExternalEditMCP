@@ -43,7 +43,7 @@ class CEPluginClient:
         self.TOKEN = ""
         if os.path.isfile(TOKEN_FILENAME):
             with open(TOKEN_FILENAME, "r") as f:
-                self.TOKEN = f.read()
+                self.TOKEN = f.read().strip()
         self.appName = "cubism-mcp"
         self.responseHandlers = {}
         self.eventHandlers = {}
