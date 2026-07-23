@@ -141,7 +141,27 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 
 #### Supported Edit Actions
 
-`AddParameter`, `EditParameter`, `DeleteParameter`, `AddParameterGroup`, `EditParameterGroup`, `AddPart`, `EditPart`, `AddWarpDeformer`, `AddRotationDeformer`, `EditWarpDeformer`, `EditArtMesh`, `EditGlue`, `MoveParameter`, `MoveParameterGroup`, `AddParameterKey`, `DeleteParameterKey`, `MoveParameterKey`, `DeleteObject`, `MoveObjectOnPartsPalette`
+| Action | Key Parameters | Description | Prompt Example |
+|--------|---------------|-------------|----------------|
+| `AddParameter` | `GroupId`, `ParameterName`, `ParameterId`, `Default`, `Minimum`, `Maximum` | Add a parameter to a group | "Create parameter 'Test', ID ParamTest, range 0–1, default 0.5, in the 'Expression' group" |
+| `EditParameter` | `Id`, `ParameterName`, `Default`, `Minimum`, `Maximum` | Edit parameter properties | "Change ParamTest max value to 2" |
+| `DeleteParameter` | `Id` | Delete a parameter | "Delete the ParamTest parameter" |
+| `AddParameterGroup` | `GroupName`, `GroupId`, `ParentGroupId` | Add a parameter group | "Create a new parameter group 'TestGroup'" |
+| `EditParameterGroup` | `Id`, `GroupName`, `LabelColorType`, `LabelCustomColor` | Edit group properties | "Change the 'XYZ' group label color to blue" |
+| `MoveParameter` | `Id`, `NewGroupId`, `InsertPosition` | Move parameter to a new position/group | "Move ParamTest to the top of the 'XYZ' group" |
+| `MoveParameterGroup` | `Id`, `InsertPosition` | Reorder parameter groups | "Move the 'Eyebrow' group to first position" |
+| `AddParameterKey` | `ParameterId`, `KeyValue` | Add a keyframe to a parameter | "Add a keyframe at 0.5 for ParamAngleX" |
+| `DeleteParameterKey` | `ParameterId`, `KeyValue` | Delete a parameter keyframe | "Delete ParamAngleX keyframe at -30" |
+| `MoveParameterKey` | `ParameterId`, `OldKeyValue`, `NewKeyValue` | Move a keyframe position | "Move ParamAngleX keyframe from 0.5 to 0.8" |
+| `AddPart` | `Name`, `Id`, `ParentId` | Add a part | "Create part 'Pupil' under 'LeftEye'" |
+| `EditPart` | `Id`, `Name`, `LabelColorType`, `LabelCustomColor`, `Opacity` | Edit part properties<br>⚠️ Use `LabelColorType`+`LabelCustomColor`, NOT `LabelColor` | "Set 'Eyebrow' part label color to blue" |
+| `AddWarpDeformer` | `Name`, `Id`, `ParentId` | Add a warp deformer | "Create a warp deformer under 'FrontHair'" |
+| `AddRotationDeformer` | `Name`, `Id`, `ParentId` | Add a rotation deformer | "Create a rotation deformer under 'Head'" |
+| `EditWarpDeformer` | `Id`, `Name`, ... | Edit warp deformer properties | "Rename warp deformer 'Surface2' to 'Face'" |
+| `EditArtMesh` | `Id`, `Opacity`, ... | Edit ArtMesh properties | "Set ArtMesh 'LeftEye Highlight' opacity to 50%" |
+| `EditGlue` | `Id`, ... | Edit glue properties | "Adjust glue object weight" |
+| `DeleteObject` | `Id` | Delete an object from the parts palette | "Delete object with ID Warp999" |
+| `MoveObjectOnPartsPalette` | `Id`, `NewParentId`, `InsertPosition` | Move object position in parts palette | "Move warp deformer 'Surface2' to position 0" |
 
 ## Troubleshooting
 

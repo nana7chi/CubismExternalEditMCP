@@ -143,7 +143,27 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 
 #### 支持的编辑 Action
 
-`AddParameter`, `EditParameter`, `DeleteParameter`, `AddParameterGroup`, `EditParameterGroup`, `AddPart`, `EditPart`, `AddWarpDeformer`, `AddRotationDeformer`, `EditWarpDeformer`, `EditArtMesh`, `EditGlue`, `MoveParameter`, `MoveParameterGroup`, `AddParameterKey`, `DeleteParameterKey`, `MoveParameterKey`, `DeleteObject`, `MoveObjectOnPartsPalette`
+| Action | 主要参数 | 说明 | 提示词示例 |
+|--------|---------|------|-----------|
+| `AddParameter` | `GroupId`, `ParameterName`, `ParameterId`, `Default`, `Minimum`, `Maximum` | 添加参数到指定组 | "新建参数'测试'，ID为ParamTest，范围0~1，默认0.5，放在'表情切换'组" |
+| `EditParameter` | `Id`, `ParameterName`, `Default`, `Minimum`, `Maximum` | 编辑参数属性 | "把ParamTest的最大值改成2" |
+| `DeleteParameter` | `Id` | 删除参数 | "删除ParamTest参数" |
+| `AddParameterGroup` | `GroupName`, `GroupId`, `ParentGroupId` | 添加参数组 | "新建参数组'测试组'" |
+| `EditParameterGroup` | `Id`, `GroupName`, `LabelColorType`, `LabelCustomColor` | 编辑参数组属性 | "把'XYZ'组的标签色改成蓝色" |
+| `MoveParameter` | `Id`, `NewGroupId`, `InsertPosition` | 移动参数到新位置/组 | "把ParamTest移到'XYZ'组最前面" |
+| `MoveParameterGroup` | `Id`, `InsertPosition` | 调整参数组顺序 | "把'眉毛'组移到第一位" |
+| `AddParameterKey` | `ParameterId`, `KeyValue` | 给参数添加关键帧 | "给ParamAngleX在0.5处添加一个关键帧" |
+| `DeleteParameterKey` | `ParameterId`, `KeyValue` | 删除参数关键帧 | "删掉ParamAngleX在-30处的关键帧" |
+| `MoveParameterKey` | `ParameterId`, `OldKeyValue`, `NewKeyValue` | 移动关键帧位置 | "把ParamAngleX的0.5关键帧移到0.8" |
+| `AddPart` | `Name`, `Id`, `ParentId` | 添加部件 | "在'左眼'下新建部件'瞳孔'" |
+| `EditPart` | `Id`, `Name`, `LabelColorType`, `LabelCustomColor`, `Opacity` | 编辑部件属性<br>⚠️ 标签色用 `LabelColorType`+`LabelCustomColor`，不是 `LabelColor` | "把'眉毛'部件的标签色改成蓝色" |
+| `AddWarpDeformer` | `Name`, `Id`, `ParentId` | 添加弯曲变形器 | "在'前发'下新建一个弯曲变形器" |
+| `AddRotationDeformer` | `Name`, `Id`, `ParentId` | 添加旋转变形器 | "在'头部'下新建旋转变形器" |
+| `EditWarpDeformer` | `Id`, `Name`, ... | 编辑弯曲变形器属性 | "把WarpDeformer「曲面2」重命名为'脸部'" |
+| `EditArtMesh` | `Id`, `Opacity`, ... | 编辑图形网格属性 | "把ArtMesh「左眼高光」的不透明度改成50%" |
+| `EditGlue` | `Id`, ... | 编辑胶水属性 | "调整胶水对象的权重" |
+| `DeleteObject` | `Id` | 从部件面板删除对象 | "删除ID为Warp999的对象" |
+| `MoveObjectOnPartsPalette` | `Id`, `NewParentId`, `InsertPosition` | 移动对象在部件面板中的位置 | "把WarpDeformer「曲面2」移动到位置0" |
 
 ## 常见问题
 
