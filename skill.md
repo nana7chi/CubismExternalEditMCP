@@ -78,7 +78,7 @@ IDs and property names. Use:
 ### Modify a Part's Label Color
 
 ```json
-{ "action": "EditPart", "params": { "Id": "<part_id>", "LabelColor": "#FF0000" } }
+{ "action": "EditPart", "params": { "Id": "<part_id>", "LabelColorType": "custom", "LabelCustomColor": "#FF0000" } }
 ```
 
 ### Create a New Parameter
