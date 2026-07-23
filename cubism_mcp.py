@@ -109,7 +109,11 @@ class CEPluginClient:
             await asyncio.sleep(retryInterval)
 
     def _ensure_reconnect(self):
-        """确保同一时间只有一个重连任务在运行，避免并发重连互相关闭对方的连接"""
+        """确保同一时间只有一个重连任务在运行，避免并发重连互相关闭对方的连接。
+        已有健康连接时直接返回：否则每次工具调用都会触发一次完整重连，
+        而 Editor 的授权绑定在连接上，重连会丢失授权状态。"""
+        if self.websocket is not None and self.isRegistered:
+            return
         if self._connect_task is None or self._connect_task.done():
             self._connect_task = asyncio.ensure_future(self.connectWithRetry())
 
