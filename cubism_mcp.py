@@ -370,8 +370,14 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if "Error" in beginResp:
             return [TextContent(type="text", text=json.dumps(beginResp, ensure_ascii=False))]
 
-        resp = await client.sendAndWait(arguments["action"], params)
-        endResp = await client.sendAndWait("EditEnd", {"Cancel": "Error" in resp})
+        resp = None
+        try:
+            resp = await client.sendAndWait(arguments["action"], params)
+        except Exception as e:
+            resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
+        finally:
+            # 无论编辑成功、失败还是异常，都必须关闭事务，否则 Editor 会停留在编辑模式
+            endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
         return [TextContent(type="text", text=json.dumps({
             "action": arguments["action"],
             "result": resp,
@@ -392,25 +398,34 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         results = []
         hasError = False
-        for i, act in enumerate(actions):
-            params = dict(act.get("params", {}))
-            params["ModelUID"] = modelUID
-            await client.sendAndWait("EditSendProgress", {"Value": (i + 1) / len(actions)})
-            await client.sendAndWait("EditSendLog", {"Message": f"[{i+1}/{len(actions)}] {act['action']}"})
-            resp = await client.sendAndWait(act["action"], params)
-            results.append({"action": act["action"], "result": resp})
-            if "Error" in resp:
-                hasError = True
-                break
-
-        endResp = await client.sendAndWait("EditEnd", {"Cancel": hasError})
-        return [TextContent(type="text", text=json.dumps({
+        exception = None
+        try:
+            for i, act in enumerate(actions):
+                params = dict(act.get("params", {}))
+                params["ModelUID"] = modelUID
+                await client.sendAndWait("EditSendProgress", {"Value": (i + 1) / len(actions)})
+                await client.sendAndWait("EditSendLog", {"Message": f"[{i+1}/{len(actions)}] {act['action']}"})
+                resp = await client.sendAndWait(act["action"], params)
+                results.append({"action": act["action"], "result": resp})
+                if "Error" in resp:
+                    hasError = True
+                    break
+        except Exception as e:
+            hasError = True
+            exception = str(e)
+        finally:
+            # 无论成功、失败还是异常，都必须关闭事务，否则 Editor 会停留在编辑模式
+            endResp = await client.sendAndWait("EditEnd", {"Cancel": hasError})
+        output = {
             "total": len(actions),
             "completed": len(results),
             "cancelled": hasError,
             "results": results,
             "edit_end": endResp
-        }, ensure_ascii=False, indent=2))]
+        }
+        if exception:
+            output["exception"] = exception
+        return [TextContent(type="text", text=json.dumps(output, ensure_ascii=False, indent=2))]
 
     return [TextContent(type="text", text=f"未知工具: {name}")]
 
