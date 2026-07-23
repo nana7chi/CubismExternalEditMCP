@@ -86,7 +86,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
       "type": "stdio",
       "command": "python",
       "args": ["cubism_mcp.py"],
-      "cwd": "J:/修改为实际路径/CubismExternalEditMCP"
+      "cwd": "J:/修改为实际路径/CubismExternalEditMCP",
       "description": "Cubism Editor MCP"
     }
   }
