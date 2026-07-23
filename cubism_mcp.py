@@ -31,7 +31,8 @@ nest_asyncio.apply()
 
 DEFAULT_PORT = 22033
 URL = "localhost"
-TOKEN_FILENAME = os.path.join(os.path.dirname(__file__), "token.txt")
+# token 存到用户目录而非包安装目录：uvx 缓存清理或版本更新后安装目录会变化，导致 token 丢失需重新授权
+TOKEN_FILENAME = os.path.join(os.path.expanduser("~"), ".cubism-mcp", "token.txt")
 
 
 class CEPluginClient:
@@ -153,6 +154,7 @@ class CEPluginClient:
             newToken = data.get("Token", "")
             if newToken and newToken != self.TOKEN:
                 self.TOKEN = newToken
+                os.makedirs(os.path.dirname(TOKEN_FILENAME), exist_ok=True)
                 with open(TOKEN_FILENAME, "w") as f:
                     f.write(newToken)
             self.isRegistered = True
