@@ -33,7 +33,8 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO,
                     format="[cubism-mcp] %(levelname)s %(message)s")
 logger = logging.getLogger("cubism-mcp")
 
-DEFAULT_PORT = 22033
+# Editor「外部应用程序集成的设置」中可修改端口，可用环境变量 CUBISM_PORT 覆盖默认值
+DEFAULT_PORT = int(os.environ.get("CUBISM_PORT", "22033"))
 URL = "localhost"
 # token 存到用户目录而非包安装目录：uvx 缓存清理或版本更新后安装目录会变化，导致 token 丢失需重新授权
 TOKEN_FILENAME = os.path.join(os.path.expanduser("~"), ".cubism-mcp", "token.txt")
