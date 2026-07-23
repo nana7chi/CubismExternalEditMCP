@@ -9,7 +9,7 @@
 
 Wrap the Live2D Cubism Editor External API as **MCP (Model Context Protocol)** tools, enabling AI Agents (such as Workbuddy) to control Cubism Editor through natural language.
 
-> Official Reference: [Cubism Editor External API Integration](https://cubism.live2d.com/editor-alpha/doc/manual/alpha1/en/external-api-intergration/index.html)
+> Official Reference: https://creatorsforum.live2d.com/t/topic/3938
 
 ## Architecture
 
