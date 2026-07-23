@@ -474,6 +474,13 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     return [TextContent(type="text", text=f"未知工具: {name}")]
 
 
+try:
+    from importlib.metadata import version as _pkg_version
+    SERVER_VERSION = _pkg_version("cubism-mcp")
+except Exception:
+    SERVER_VERSION = "1.0.0"
+
+
 async def main():
     # 在 MCP 握手前就启动 WebSocket 连接，让连接建立与 stdio 初始化并行
     client.start()
@@ -483,7 +490,7 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="cubism-mcp",
-                server_version="1.0.0",
+                server_version=SERVER_VERSION,
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities=None
