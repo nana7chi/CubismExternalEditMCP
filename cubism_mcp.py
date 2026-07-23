@@ -112,6 +112,12 @@ class CEPluginClient:
         if self._connect_task is None or self._connect_task.done():
             self._connect_task = asyncio.ensure_future(self.connectWithRetry())
 
+    def start(self):
+        """启动监听与连接任务（幂等）"""
+        if self._listen_task is None:
+            self._listen_task = asyncio.ensure_future(self.startListen())
+        self._ensure_reconnect()
+
     async def sendRaw(self, data: dict):
         if self.websocket is None:
             raise ConnectionError("未连接到 Cubism Editor")
@@ -328,11 +334,8 @@ async def list_tools() -> list[Tool]:
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    # 确保客户端在运行
-    if client._listen_task is None:
-        client._listen_task = asyncio.ensure_future(client.startListen())
-        client._connect_task = asyncio.ensure_future(client.connectWithRetry())
-        await asyncio.sleep(1)
+    # 连接任务已在 main() 中启动；未就绪时由各工具的 ensureReady 返回引导信息
+    client.start()
 
     if name == "cubism_status":
         if client.websocket is None or not client.isRegistered:
@@ -471,6 +474,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 
 async def main():
+    # 在 MCP 握手前就启动 WebSocket 连接，让连接建立与 stdio 初始化并行
+    client.start()
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
