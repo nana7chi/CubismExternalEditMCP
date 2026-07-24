@@ -19,14 +19,11 @@ import logging
 import os
 import sys
 import uuid
+from typing import Literal
 
 import websockets
 
-from mcp.server.lowlevel.server import NotificationOptions
-from mcp.server.lowlevel.server import Server
-from mcp.server.models import InitializationOptions
-from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.server.fastmcp import FastMCP
 
 # MCP 使用 stdio 协议，日志必须输出到 stderr，绝不能污染 stdout
 logging.basicConfig(stream=sys.stderr, level=logging.INFO,
@@ -41,6 +38,18 @@ TOKEN_FILENAME = os.path.join(os.path.expanduser("~"), ".cubism-mcp", "token.txt
 
 # 支持的编辑 API 列表，用于 inputSchema 的 enum 约束，让客户端在发送前拦截无效 action
 EDIT_ACTIONS = [
+    "AddParameter", "EditParameter", "DeleteParameter",
+    "AddParameterGroup", "EditParameterGroup",
+    "AddPart", "EditPart",
+    "AddWarpDeformer", "AddRotationDeformer", "EditWarpDeformer",
+    "EditArtMesh", "EditGlue",
+    "MoveParameter", "MoveParameterGroup",
+    "AddParameterKey", "DeleteParameterKey", "MoveParameterKey",
+    "DeleteObject", "MoveObjectOnPartsPalette",
+]
+
+# 用 Literal 类型让 FastMCP 自动生成 enum 约束的 inputSchema
+EditAction = Literal[
     "AddParameter", "EditParameter", "DeleteParameter",
     "AddParameterGroup", "EditParameterGroup",
     "AddPart", "EditPart",
@@ -260,252 +269,220 @@ class CEPluginClient:
 
 
 client = CEPluginClient()
-server = Server("cubism-mcp")
+
+mcp = FastMCP("cubism-mcp")
 
 
-@server.list_tools()
-async def list_tools() -> list[Tool]:
-    return [
-        Tool(
-            name="cubism_status",
-            description="检查与 Cubism Editor 的连接及授权状态。未连接或未授权时会返回具体指引。",
-            inputSchema={"type": "object", "properties": {}}
-        ),
-        Tool(
-            name="cubism_get_model_uid",
-            description="获取当前在 Cubism Editor 中打开的模型 UID",
-            inputSchema={"type": "object", "properties": {}}
-        ),
-        Tool(
-            name="cubism_get_parameter_structure",
-            description="获取模型的完整参数结构树（参数组 + 参数，含 Min/Default/Max/KeyValues）",
-            inputSchema={"type": "object", "properties": {
-                "model_uid": {"type": "string", "description": "模型 UID（可通过 cubism_get_model_uid 获取）"}
-            }, "required": ["model_uid"]}
-        ),
-        Tool(
-            name="cubism_get_part_structure",
-            description="获取模型的部件结构树（含 ArtMesh/WarpDeformer/RotationDeformer/Part/ArtPath/Glue 类型）",
-            inputSchema={"type": "object", "properties": {
-                "model_uid": {"type": "string"}
-            }, "required": ["model_uid"]}
-        ),
-        Tool(
-            name="cubism_get_deformer_structure",
-            description="获取模型的变形器结构树",
-            inputSchema={"type": "object", "properties": {
-                "model_uid": {"type": "string"}
-            }, "required": ["model_uid"]}
-        ),
-        Tool(
-            name="cubism_get_object",
-            description="获取指定对象的信息（按 Type 返回不同数据结构：ArtMesh/Part/WarpDeformer/RotationDeformer/Glue）",
-            inputSchema={"type": "object", "properties": {
-                "model_uid": {"type": "string"},
-                "id": {"type": "string", "description": "对象 ID"}
-            }, "required": ["model_uid", "id"]}
-        ),
-        Tool(
-            name="cubism_edit",
-            description="执行编辑操作。会自动处理 EditBegin/EditEnd。action 指定具体编辑 API，params 是该 API 的参数（不含 ModelUID，会自动填充）。常用 action: AddParameter, EditParameter, DeleteParameter, AddParameterGroup, EditParameterGroup, AddPart, EditPart, AddWarpDeformer, AddRotationDeformer, EditWarpDeformer, EditArtMesh, EditGlue, MoveParameter, MoveParameterGroup, AddParameterKey, DeleteParameterKey, MoveParameterKey, DeleteObject, MoveObjectOnPartsPalette",
-            inputSchema={"type": "object", "properties": {
-                "action": {"type": "string", "enum": EDIT_ACTIONS, "description": "编辑 API 名称，如 AddParameter / EditPart / AddWarpDeformer"},
-                "params": {"type": "object", "description": "编辑 API 的参数对象（无需 ModelUID，自动填充）"}
-            }, "required": ["action", "params"]}
-        ),
-        Tool(
-            name="cubism_edit_batch",
-            description="批量执行多个编辑操作，在同一个 EditBegin/EditEnd 事务内完成。actions 是 [{action, params}] 数组。任一操作失败会自动 Cancel 回滚。",
-            inputSchema={"type": "object", "properties": {
-                "actions": {"type": "array", "items": {
-                    "type": "object",
-                    "properties": {
-                        "action": {"type": "string", "enum": EDIT_ACTIONS},
-                        "params": {"type": "object"}
-                    },
-                    "required": ["action", "params"]
-                }}
-            }, "required": ["actions"]}
-        ),
-        Tool(
-            name="cubism_get_selected",
-            description="获取当前在 Editor 中选中的对象 ID 列表",
-            inputSchema={"type": "object", "properties": {
-                "model_uid": {"type": "string"}
-            }, "required": ["model_uid"]}
-        ),
-    ]
-
-
-@server.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    # 连接任务已在 main() 中启动；未就绪时由各工具的 ensureReady 返回引导信息
+def _start_client():
+    """确保 WebSocket 客户端已启动（幂等）"""
     client.start()
 
-    if name == "cubism_status":
-        if client.websocket is None or not client.isRegistered:
-            return [TextContent(type="text", text=json.dumps({
-                "connected": client.websocket is not None,
-                "registered": client.isRegistered,
-                "approved": False,
-                "edit_approved": False,
-                "port": DEFAULT_PORT,
-                "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。"
-            }, ensure_ascii=False, indent=2))]
-        isAuth = await client.sendAndWait("GetIsApproval", {})
-        isEdit = await client.sendAndWait("GetIsEditApproval", {})
-        return [TextContent(type="text", text=json.dumps({
+
+def _json(data, indent=None):
+    return json.dumps(data, ensure_ascii=False, indent=indent)
+
+
+@mcp.tool()
+async def cubism_status() -> str:
+    """检查与 Cubism Editor 的连接及授权状态。未连接或未授权时会返回具体指引。"""
+    _start_client()
+    if client.websocket is None or not client.isRegistered:
+        return _json({
             "connected": client.websocket is not None,
             "registered": client.isRegistered,
-            "approved": isAuth.get("Result", False),
-            "edit_approved": isEdit.get("Result", False),
+            "approved": False,
+            "edit_approved": False,
             "port": DEFAULT_PORT,
-            "hint": "已连接。如需编辑模型，请确保对话框中 Allow 和 Edit 都已勾选。"
-        }, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_get_model_uid":
-        err = await client.ensureReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        resp = await client.sendAndWait("GetCurrentModelUID", {})
-        return [TextContent(type="text", text=json.dumps(resp, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_get_parameter_structure":
-        err = await client.ensureReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        resp = await client.sendAndWait("GetParameterStructure", {"ModelUID": arguments["model_uid"]})
-        return [TextContent(type="text", text=json.dumps(resp, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_get_part_structure":
-        err = await client.ensureReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        resp = await client.sendAndWait("GetPartStructure", {"ModelUID": arguments["model_uid"]})
-        return [TextContent(type="text", text=json.dumps(resp, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_get_deformer_structure":
-        err = await client.ensureReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        resp = await client.sendAndWait("GetDeformerStructure", {"ModelUID": arguments["model_uid"]})
-        return [TextContent(type="text", text=json.dumps(resp, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_get_object":
-        err = await client.ensureReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        resp = await client.sendAndWait("GetObject", {"ModelUID": arguments["model_uid"], "Id": arguments["id"]})
-        return [TextContent(type="text", text=json.dumps(resp, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_get_selected":
-        err = await client.ensureReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        resp = await client.sendAndWait("GetSelectedObjects", {"ModelUID": arguments["model_uid"]})
-        return [TextContent(type="text", text=json.dumps(resp, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_edit":
-        err = await client.ensureEditReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        modelUID_resp = await client.sendAndWait("GetCurrentModelUID", {})
-        modelUID = modelUID_resp.get("ModelUID", "")
-        params = dict(arguments.get("params", {}))
-        params["ModelUID"] = modelUID
-
-        beginResp = await client.sendAndWait("EditBegin", {"Silent": False})
-        if "Error" in beginResp:
-            return [TextContent(type="text", text=json.dumps(beginResp, ensure_ascii=False))]
-
-        resp = None
-        try:
-            resp = await client.sendAndWait(arguments["action"], params)
-        except Exception as e:
-            resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
-        finally:
-            # 无论编辑成功、失败还是异常，都必须关闭事务，否则 Editor 会停留在编辑模式
-            endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
-        return [TextContent(type="text", text=json.dumps({
-            "action": arguments["action"],
-            "result": resp,
-            "edit_end": endResp
-        }, ensure_ascii=False, indent=2))]
-
-    if name == "cubism_edit_batch":
-        err = await client.ensureEditReady()
-        if err:
-            return [TextContent(type="text", text=json.dumps(err, ensure_ascii=False))]
-        modelUID_resp = await client.sendAndWait("GetCurrentModelUID", {})
-        modelUID = modelUID_resp.get("ModelUID", "")
-        actions = arguments["actions"]
-
-        beginResp = await client.sendAndWait("EditBegin", {"Silent": False})
-        if "Error" in beginResp:
-            return [TextContent(type="text", text=json.dumps(beginResp, ensure_ascii=False))]
-
-        results = []
-        hasError = False
-        exception = None
-        try:
-            for i, act in enumerate(actions):
-                params = dict(act.get("params", {}))
-                params["ModelUID"] = modelUID
-                await client.sendAndWait("EditSendProgress", {"Value": (i + 1) / len(actions)})
-                await client.sendAndWait("EditSendLog", {"Message": f"[{i+1}/{len(actions)}] {act['action']}"})
-                resp = await client.sendAndWait(act["action"], params)
-                results.append({"action": act["action"], "result": resp})
-                if "Error" in resp:
-                    hasError = True
-                    break
-        except Exception as e:
-            hasError = True
-            exception = str(e)
-        finally:
-            # 无论成功、失败还是异常，都必须关闭事务，否则 Editor 会停留在编辑模式
-            endResp = await client.sendAndWait("EditEnd", {"Cancel": hasError})
-        output = {
-            "total": len(actions),
-            "completed": len(results),
-            "cancelled": hasError,
-            "results": results,
-            "edit_end": endResp
-        }
-        if exception:
-            output["exception"] = exception
-        return [TextContent(type="text", text=json.dumps(output, ensure_ascii=False, indent=2))]
-
-    return [TextContent(type="text", text=f"未知工具: {name}")]
+            "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。"
+        }, indent=2)
+    isAuth = await client.sendAndWait("GetIsApproval", {})
+    isEdit = await client.sendAndWait("GetIsEditApproval", {})
+    return _json({
+        "connected": client.websocket is not None,
+        "registered": client.isRegistered,
+        "approved": isAuth.get("Result", False),
+        "edit_approved": isEdit.get("Result", False),
+        "port": DEFAULT_PORT,
+        "hint": "已连接。如需编辑模型，请确保对话框中 Allow 和 Edit 都已勾选。"
+    }, indent=2)
 
 
-try:
-    from importlib.metadata import version as _pkg_version
-    SERVER_VERSION = _pkg_version("cubism-mcp")
-except Exception:
-    SERVER_VERSION = "1.0.0"
+@mcp.tool()
+async def cubism_get_model_uid() -> str:
+    """获取当前在 Cubism Editor 中打开的模型 UID"""
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetCurrentModelUID", {})
+    return _json(resp, indent=2)
 
 
-async def main():
-    # 在 MCP 握手前就启动 WebSocket 连接，让连接建立与 stdio 初始化并行
-    client.start()
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="cubism-mcp",
-                server_version=SERVER_VERSION,
-                capabilities=server.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities=None
-                )
-            )
-        )
+@mcp.tool()
+async def cubism_get_parameter_structure(model_uid: str) -> str:
+    """获取模型的完整参数结构树（参数组 + 参数，含 Min/Default/Max/KeyValues）
+
+    Args:
+        model_uid: 模型 UID（可通过 cubism_get_model_uid 获取）
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetParameterStructure", {"ModelUID": model_uid})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_part_structure(model_uid: str) -> str:
+    """获取模型的部件结构树（含 ArtMesh/WarpDeformer/RotationDeformer/Part/ArtPath/Glue 类型）
+
+    Args:
+        model_uid: 模型 UID
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetPartStructure", {"ModelUID": model_uid})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_deformer_structure(model_uid: str) -> str:
+    """获取模型的变形器结构树
+
+    Args:
+        model_uid: 模型 UID
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetDeformerStructure", {"ModelUID": model_uid})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_object(model_uid: str, id: str) -> str:
+    """获取指定对象的信息（按 Type 返回不同数据结构：ArtMesh/Part/WarpDeformer/RotationDeformer/Glue）
+
+    Args:
+        model_uid: 模型 UID
+        id: 对象 ID
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetObject", {"ModelUID": model_uid, "Id": id})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_edit(action: EditAction, params: dict) -> str:
+    """执行编辑操作。会自动处理 EditBegin/EditEnd。
+
+    Args:
+        action: 编辑 API 名称，如 AddParameter / EditPart / AddWarpDeformer
+        params: 编辑 API 的参数对象（无需 ModelUID，自动填充）
+    """
+    _start_client()
+    err = await client.ensureEditReady()
+    if err:
+        return _json(err)
+    modelUID_resp = await client.sendAndWait("GetCurrentModelUID", {})
+    modelUID = modelUID_resp.get("ModelUID", "")
+    params = dict(params)
+    params["ModelUID"] = modelUID
+
+    beginResp = await client.sendAndWait("EditBegin", {"Silent": False})
+    if "Error" in beginResp:
+        return _json(beginResp)
+
+    resp = None
+    try:
+        resp = await client.sendAndWait(action, params)
+    except Exception as e:
+        resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
+    finally:
+        # 无论编辑成功、失败还是异常，都必须关闭事务，否则 Editor 会停留在编辑模式
+        endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
+    return _json({
+        "action": action,
+        "result": resp,
+        "edit_end": endResp
+    }, indent=2)
+
+
+@mcp.tool()
+async def cubism_edit_batch(actions: list[dict]) -> str:
+    """批量执行多个编辑操作，在同一个 EditBegin/EditEnd 事务内完成。
+
+    Args:
+        actions: [{action, params}] 数组，action 是编辑 API 名称，params 是该 API 的参数对象
+    """
+    _start_client()
+    err = await client.ensureEditReady()
+    if err:
+        return _json(err)
+    modelUID_resp = await client.sendAndWait("GetCurrentModelUID", {})
+    modelUID = modelUID_resp.get("ModelUID", "")
+
+    beginResp = await client.sendAndWait("EditBegin", {"Silent": False})
+    if "Error" in beginResp:
+        return _json(beginResp)
+
+    results = []
+    hasError = False
+    exception = None
+    try:
+        for i, act in enumerate(actions):
+            params = dict(act.get("params", {}))
+            params["ModelUID"] = modelUID
+            await client.sendAndWait("EditSendProgress", {"Value": (i + 1) / len(actions)})
+            await client.sendAndWait("EditSendLog", {"Message": f"[{i+1}/{len(actions)}] {act['action']}"})
+            resp = await client.sendAndWait(act["action"], params)
+            results.append({"action": act["action"], "result": resp})
+            if "Error" in resp:
+                hasError = True
+                break
+    except Exception as e:
+        hasError = True
+        exception = str(e)
+    finally:
+        # 无论成功、失败还是异常，都必须关闭事务，否则 Editor 会停留在编辑模式
+        endResp = await client.sendAndWait("EditEnd", {"Cancel": hasError})
+    output = {
+        "total": len(actions),
+        "completed": len(results),
+        "cancelled": hasError,
+        "results": results,
+        "edit_end": endResp
+    }
+    if exception:
+        output["exception"] = exception
+    return _json(output, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_selected(model_uid: str) -> str:
+    """获取当前在 Editor 中选中的对象 ID 列表
+
+    Args:
+        model_uid: 模型 UID
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetSelectedObjects", {"ModelUID": model_uid})
+    return _json(resp, indent=2)
 
 
 def cli():
     """Entry point for uvx / pip install"""
-    asyncio.run(main())
+    mcp.run()
 
 
 if __name__ == "__main__":

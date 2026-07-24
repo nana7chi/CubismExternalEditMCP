@@ -38,7 +38,7 @@ AI Agent (Workbuddy)
 - **批量编辑** — 同一事务内执行多个操作，任一失败自动回滚
 - **权限分级** — 查询需 Allow 授权，编辑需 Edit 授权
 - **自动重连** — Editor 重启后自动重连，3 秒间隔
-- **Token 持久化** — 认证令牌缓存到 `token.txt`，避免重复授权
+- **Token 持久化** — 认证令牌缓存到 `~/.cubism-mcp/token.txt`，避免重复授权
 
 ## 环境要求
 
@@ -46,13 +46,40 @@ AI Agent (Workbuddy)
 |------|------|
 | Python | ≥ 3.10 |
 | Cubism Editor | 5.4 Alpha（有效期至 2026-09-14） |
-|操作系统 | Windows / macOS |
+| 操作系统 | Windows / macOS |
 
-## 配置 MCP 客户端
+## 使用流程
 
-> 也支持ClaudeCode, Codex, OpenCode等其他支持MCP的客户端
+### 快速开始
 
-### 方式一：uvx 在线运行（推荐）
+**复制以下提示词发给你的 AI Agent**：
+
+> 根据 https://github.com/nana7chi/CubismExternalEditMCP/blob/master/README.md 完成 cubism-mcp 的安装和配置。如果电脑上还没有 `uv`，请先帮我安装。配置完成后告诉我是否就绪。
+
+
+### 第一步：安装 uv（仅一次）
+
+`uv` 是一个极小的 Python 包管理器，用于自动安装和运行本 MCP。安装后无需再管 Python 环境。
+
+**macOS**（终端粘贴运行）：
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows**（PowerShell 粘贴运行）：
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+安装完成后**重启终端**，输入 `uv --version` 能看到版本号即成功。
+
+### 第二步：在 AI Agent 中配置 MCP
+
+> 以 `Workbuddy` 为例。也支持 `ClaudeCode`, `Codex` 等其他支持MCP的客户端
+
+> 第一次启动会自动下载依赖包，耗时约 1–2 分钟，之后秒启。
+
+#### 方式一：uvx 在线运行（推荐）
 
 在 Workbuddy 中设置 → MCP → 添加 编辑JSON，在`mcpServers`中添加`cubism-mcp`：
 
@@ -69,7 +96,7 @@ AI Agent (Workbuddy)
 }
 ```
 
-### 方式二：本地克隆运行
+#### 方式二：本地克隆运行
 
 1. 克隆源码到本地(或下载ZIP并解压)
 
@@ -93,27 +120,30 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 }
 ```
 
-## 使用流程
+### 第三步：在 Cubism Editor 中开启外部集成
 
-1. AI Agent配置MCP客户端，
-   *  第一次配置启动需要下载依赖包，花费时间较久
-2. 启动 Cubism Editor，加载模型
-3. **文件 → 外部应用集成设置** → 端口 `22033` → 开启
-4. 弹出对话框**勾选 Allow + Edit**，确认
-5. 在 AI Agent 中通过自然语言操控 Editor
+1. 启动 Cubism Editor 5.4 Alpha，打开一个模型
+2. 菜单「**文件**」→「**外部应用程序集成的设置**」
+3. 确认端口为 `22033`，打开「**使用**」开关
+4. 弹出授权对话框，找到 `cubism-mcp`，**勾选 Allow 和 Edit**，点 OK
+> 如果没看到弹窗，检查 Editor 右下角是否有闪烁的外部应用图标，点击即可打开对话框。
 
 ![外部应用程序集成的设置](外部应用程序集成的设置.png)
 
-## 使用示例（提示词）
+
+### 第四步：开始使用
+
+在 AI Agent 中用自然语言操控 Editor，例如：
 
 ```
 "列出当前模型的参数结构"
 "查看部件层级"
-"把 Core 部件的标签设为蓝色"
+"把眉毛部件的标签色改成蓝色"
 "新建参数 ParamsTest，ID 为 ParamTest，范围 0-1，默认 0.5"
 "批量添加 3 个关键帧到 ParamAngleX"
-"选中整体XY 变形器，移动到位置 (3000, 4000)"
 ```
+
+> **注意**：每次重启 Cubism Editor 后，都需要重新开启「外部应用集成」开关并勾选 Allow + Edit 权限。
 
 ## 可用工具
 
@@ -190,10 +220,8 @@ pip install -r requirements.txt
 
 | 包 | 用途 |
 |----|------|
-| `mcp` | MCP 服务端框架（stdio 通信） |
+| `mcp` | MCP 服务端框架（FastMCP + stdio 通信） |
 | `websockets` | WebSocket 客户端，连接 Editor API |
-| `pydantic` | 数据模型验证 |
-| `nest_asyncio` | 嵌套事件循环支持 |
 
 ## 注意事项
 

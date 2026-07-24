@@ -38,7 +38,7 @@ AI Agent (Workbuddy)
 - **Batch Editing** — Execute multiple operations within a single transaction; any failure triggers automatic rollback
 - **Permission Levels** — Allow for read access, Edit for write access
 - **Auto Reconnect** — Reconnects every 3 seconds after Editor restart
-- **Token Persistence** — Authentication token cached in `token.txt` to avoid repeated authorization
+- **Token Persistence** — Authentication token cached in `~/.cubism-mcp/token.txt` to avoid repeated authorization
 
 ## Requirements
 
@@ -48,11 +48,40 @@ AI Agent (Workbuddy)
 | Cubism Editor | 5.4 Alpha (valid until 2026-09-14) |
 | OS | Windows / macOS |
 
-## MCP Client Configuration
+## Usage
+
+### Quick Start
+
+**Copy and send the following prompt to your AI Agent**:
+
+> According to https://github.com/nana7chi/CubismExternalEditMCP/blob/master/README.md, install and configure cubism-mcp for me. If `uv` is not installed on this computer, install it first. Let me know when it's ready.
+
+
+### Step 1: Install uv (one-time only)
+
+`uv` is a tiny Python package manager that auto-installs and runs this MCP. No manual Python environment management needed afterwards.
+
+**macOS** (paste in terminal):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows** (paste in PowerShell):
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+After installation, **restart your terminal** and run `uv --version` to verify.
+
+> Don't want to install uv? You can also use a local Python (≥3.10) with `pip install -r requirements.txt` then `python cubism_mcp.py`, but you'll manage dependencies yourself.
+
+### Step 2: Configure MCP in your AI Agent
 
 > Also supports Claude Code, Codex, OpenCode and other MCP-compatible clients.
 
-### Option 1: uvx One-Line (Recommended)
+> The first launch auto-downloads dependencies (~1–2 min); subsequent starts are instant.
+
+#### Option 1: uvx One-Line (Recommended)
 
 In Workbuddy: Settings → MCP → Edit JSON → add `cubism-mcp` under `mcpServers`:
 
@@ -69,9 +98,9 @@ In Workbuddy: Settings → MCP → Edit JSON → add `cubism-mcp` under `mcpServ
 }
 ```
 
-### Option 2: Local Clone
+#### Option 2: Local Clone
 
-1. Clone the repository:
+1. Clone the repository (or download ZIP and extract):
 
 ```bash
 git clone https://github.com/nana7chi/CubismExternalEditMCP.git
@@ -91,27 +120,31 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
     }
   }
 }
-```
 
-## Usage
+### Step 3: Enable External Integration in Cubism Editor
 
-1. Launch Cubism Editor and open a model
-2. **File → External App Integration Settings** → port `22033` → enable
-3. In the dialog, **check Allow + Edit**, then confirm
-4. Control the Editor through natural language in your AI Agent
+1. Launch Cubism Editor 5.4 Alpha and open a model
+2. Menu **File → External App Integration Settings**
+3. Confirm port is `22033`, turn on the **Use** toggle
+4. In the authorization dialog, find `cubism-mcp`, **check Allow and Edit**, click OK
 
 ![External App Integration Settings](外部应用程序集成的设置.png)
 
-## Example Prompts
+> If you don't see the dialog, check the Editor's bottom-right corner for a blinking external app icon — click it to open the dialog.
+
+### Step 4: Start Using
+
+Control the Editor through natural language in your AI Agent, for example:
 
 ```
 "List the parameter structure of the current model"
 "Inspect the part hierarchy"
-"Change the Core part label to blue"
+"Change the Eyebrow part label color to blue"
 "Create parameter ParamsTest, ID ParamTest, range 0-1, default 0.5"
 "Batch add 3 keyframes to ParamAngleX"
-"Select the GlobalXY deformer and move it to position (3000, 4000)"
 ```
+
+> **Note**: After each Cubism Editor restart, you must re-enable the External App Integration toggle and re-check Allow + Edit permissions.
 
 ## Available Tools
 
@@ -188,10 +221,8 @@ pip install -r requirements.txt
 
 | Package | Purpose |
 |---------|---------|
-| `mcp` | MCP server framework (stdio communication) |
+| `mcp` | MCP server framework (FastMCP + stdio communication) |
 | `websockets` | WebSocket client for Editor API connection |
-| `pydantic` | Data model validation |
-| `nest_asyncio` | Nested event loop support |
 
 ## Notes
 
