@@ -23,4 +23,6 @@ token.txt
 Thumbs.db
 
 # codebuddy
-.codebuddy/
+.codebuddy/build/
+*.spec
+dist/
