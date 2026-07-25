@@ -1,20 +1,24 @@
 # Cubism External Edit MCP
 
+[![Cubism Editor](https://img.shields.io/badge/Cubism%20Editor-5.4%20Alpha-ff69b4)](https://www.live2d.com/cubism/download/editor/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-1.0-8A2BE2)](https://modelcontextprotocol.io/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![MCP Badge](https://lobehub.com/badge/mcp/nana7chi-cubismexternaleditmcp)](https://lobehub.com/mcp/nana7chi-cubismexternaleditmcp)
 
-[中文](README.md) | [English](README_EN.md)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/nana7chi/CubismExternalEditMCP?style=flat)](https://github.com/nana7chi/CubismExternalEditMCP/stargazers)
+[![GitHub last commit](https://img.shields.io/github/last-commit/nana7chi/CubismExternalEditMCP)](https://github.com/nana7chi/CubismExternalEditMCP/commits)
 
-将 Live2D Cubism Editor 的外部应用集成 API 封装为 **MCP (Model Context Protocol)** 工具，让 AI Agent（如 Workbuddy）通过自然语言操控 Cubism Editor 进行建模操作。
+[中文](README.md) | [English](i18n/README_EN.md) | [日本語](i18n/README_JA.md) | [한국어](i18n/README_KO.md)
+
+将 Live2D Cubism Editor 的外部应用集成 API 封装为 **MCP (Model Context Protocol)** 工具，让 AI Agent 通过自然语言操控 Cubism Editor 进行建模操作。
 
 > 官方下载及参考文档：https://creatorsforum.live2d.com/t/topic/3938
 
 ## 架构
 
 ```
-AI Agent (Workbuddy)
+AI Agent
     │
     │ stdio (MCP Protocol)
     │
@@ -75,13 +79,13 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 ### 第二步：在 AI Agent 中配置 MCP
 
-> 以 `Workbuddy` 为例。也支持 `ClaudeCode`, `Codex` 等其他支持MCP的客户端
+> 支持 `ClaudeCode`, `Codex`, `Workbuddy` 等各种支持MCP的客户端
 
 > 第一次启动会自动下载依赖包，耗时约 1–2 分钟，之后秒启。
 
 #### 方式一：uvx 在线运行（推荐）
 
-在 Workbuddy 中设置 → MCP → 添加 编辑JSON，在`mcpServers`中添加`cubism-mcp`：
+添加以下MCP配置：
 
 ```json
 {
@@ -104,7 +108,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 ```
 
-2. 在 Workbuddy 中设置 → MCP → 添加 编辑JSON，在`mcpServers`中添加`cubism-mcp`（修改 `cwd` 为实际路径）：
+2. 添加以下MCP配置（修改 `cwd` 为实际路径）：
 
 ```json
 {

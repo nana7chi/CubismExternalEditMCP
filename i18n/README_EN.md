@@ -1,20 +1,24 @@
 # Cubism External Edit MCP
 
+[![Cubism Editor](https://img.shields.io/badge/Cubism%20Editor-5.4%20Alpha-ff69b4)](https://www.live2d.com/cubism/download/editor/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)](https://www.python.org/)
 [![MCP](https://img.shields.io/badge/MCP-1.0-8A2BE2)](https://modelcontextprotocol.io/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![MCP Badge](https://lobehub.com/badge/mcp/nana7chi-cubismexternaleditmcp)](https://lobehub.com/mcp/nana7chi-cubismexternaleditmcp)
 
-[中文](README.md) | [English](README_EN.md)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/nana7chi/CubismExternalEditMCP?style=flat)](https://github.com/nana7chi/CubismExternalEditMCP/stargazers)
+[![GitHub last commit](https://img.shields.io/github/last-commit/nana7chi/CubismExternalEditMCP)](https://github.com/nana7chi/CubismExternalEditMCP/commits)
 
-Wrap the Live2D Cubism Editor External API as **MCP (Model Context Protocol)** tools, enabling AI Agents (such as Workbuddy) to control Cubism Editor through natural language.
+[中文](../README.md) | English | [日本語](README_JA.md) | [한국어](README_KO.md)
+
+Wrap the Live2D Cubism Editor External API as **MCP (Model Context Protocol)** tools, enabling AI Agents to control Cubism Editor through natural language.
 
 > Official Reference: https://creatorsforum.live2d.com/t/topic/3938
 
 ## Architecture
 
 ```
-AI Agent (Workbuddy)
+AI Agent
     │
     │ stdio (MCP Protocol)
     │
@@ -27,7 +31,7 @@ AI Agent (Workbuddy)
     │
 ┌───▼──────────────────────┐
 │  Cubism Editor 5.4 Alpha │
-│  (External API)           │
+│  (External API Integration) │
 └──────────────────────────┘
 ```
 
@@ -77,13 +81,13 @@ After installation, **restart your terminal** and run `uv --version` to verify.
 
 ### Step 2: Configure MCP in your AI Agent
 
-> Also supports Claude Code, Codex, OpenCode and other MCP-compatible clients.
+> Supports Claude Code, Codex, Workbuddy, OpenCode and other MCP-compatible clients.
 
 > The first launch auto-downloads dependencies (~1–2 min); subsequent starts are instant.
 
 #### Option 1: uvx One-Line (Recommended)
 
-In Workbuddy: Settings → MCP → Edit JSON → add `cubism-mcp` under `mcpServers`:
+Add the following MCP configuration:
 
 ```json
 {
@@ -106,7 +110,7 @@ In Workbuddy: Settings → MCP → Edit JSON → add `cubism-mcp` under `mcpServ
 git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 ```
 
-2. In Workbuddy: Settings → MCP → Edit JSON → add `cubism-mcp` under `mcpServers` (change `cwd` to the actual path):
+2. Add the following MCP configuration (change `cwd` to the actual path):
 
 ```json
 {
@@ -128,7 +132,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 3. Confirm port is `22033`, turn on the **Use** toggle
 4. In the authorization dialog, find `cubism-mcp`, **check Allow and Edit**, click OK
 
-![External App Integration Settings](外部应用程序集成的设置.png)
+![External App Integration Settings](../外部应用程序集成的设置.png)
 
 > If you don't see the dialog, check the Editor's bottom-right corner for a blinking external app icon — click it to open the dialog.
 
