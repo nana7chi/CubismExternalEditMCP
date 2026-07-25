@@ -19,6 +19,7 @@ import logging
 import os
 import sys
 import uuid
+from contextlib import asynccontextmanager
 from typing import Literal
 
 import websockets
@@ -132,6 +133,23 @@ class CEPluginClient:
             self._listen_task = asyncio.ensure_future(self.startListen())
         self._ensure_reconnect()
 
+    async def waitForRegistration(self, timeout: float = 10) -> bool:
+        """等待注册完成。已注册时立即返回 True，超时返回 False。
+
+        连接任务在后台异步建立，工具调用时用它兜底：
+        即使 lifespan 预热来不及（Editor 刚启动、首次授权弹窗等），
+        也会等待注册完成而非因竞态立即误报未连接。"""
+        if self.isRegistered:
+            return True
+        self._ensure_reconnect()
+        deadline = asyncio.get_running_loop().time() + timeout
+        while not self.isRegistered:
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                return False
+            await asyncio.sleep(min(0.2, remaining))
+        return True
+
     async def sendRaw(self, data: dict):
         if self.websocket is None:
             raise ConnectionError("未连接到 Cubism Editor")
@@ -225,7 +243,7 @@ class CEPluginClient:
                 asyncio.ensure_future(task(jsonData.get("Data", {})))
 
     async def ensureReady(self):
-        if not self.isRegistered:
+        if not await self.waitForRegistration(10):
             return {"Error": {
                 "ErrorType": "NotRegistered",
                 "Message": "未连接到 Cubism Editor。",
@@ -270,7 +288,16 @@ class CEPluginClient:
 
 client = CEPluginClient()
 
-mcp = FastMCP("cubism-mcp")
+
+@asynccontextmanager
+async def lifespan(app):
+    # 在 MCP 握手前就启动 WebSocket 连接，让连接建立与 stdio 初始化并行。
+    # 这样首次工具调用时注册大概率已完成，避免竞态导致的误报未连接。
+    client.start()
+    yield
+
+
+mcp = FastMCP("cubism-mcp", lifespan=lifespan)
 
 
 def _start_client():
@@ -286,6 +313,7 @@ def _json(data, indent=None):
 async def cubism_status() -> str:
     """检查与 Cubism Editor 的连接及授权状态。未连接或未授权时会返回具体指引。"""
     _start_client()
+    await client.waitForRegistration(10)
     if client.websocket is None or not client.isRegistered:
         return _json({
             "connected": client.websocket is not None,
