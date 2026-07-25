@@ -24,7 +24,7 @@ AI Agent
     │
 ┌───▼──────────────────────┐
 │  cubism_mcp.py    │  ← This Project
-│  (MCP Server, 9 Tools)   │
+│  (MCP Server, 17 Tools)  │
 └───┬──────────────────────┘
     │
     │ WebSocket (ws://localhost:22033)
@@ -37,8 +37,9 @@ AI Agent
 
 ## Features
 
-- **Full Model Inspection** — Parameter structure, part structure, deformer structure, individual object details
-- **Edit Operations** — CRUD for parameters, parts, deformers, ArtMesh, and Glue, with automatic transaction wrapping
+- **Read/Write Operations** — Read/write model parameter values, view document list, get edit mode (compatible with Editor 4.x+)
+- **Full Model Inspection** — Parameter structure, part structure, deformer structure, individual object details (requires 5.4 Alpha)
+- **Edit Operations** — CRUD for parameters, parts, deformers, ArtMesh, and Glue, with automatic transaction wrapping (requires 5.4 Alpha)
 - **Batch Editing** — Execute multiple operations within a single transaction; any failure triggers automatic rollback
 - **Permission Levels** — Allow for read access, Edit for write access
 - **Auto Reconnect** — Reconnects every 3 seconds after Editor restart
@@ -148,31 +149,42 @@ Control the Editor through natural language in your AI Agent, for example:
 "Batch add 3 keyframes to ParamAngleX"
 ```
 
-> **Note**: After each Cubism Editor restart, you must re-enable the External App Integration toggle and re-check Allow + Edit permissions.
-
 ## Available Tools
 
 ### Diagnostics
 
 | Tool | Description |
-|------|-------------|
-| `cubism_status` | Check connection status, registration status, authorization, and edit authorization |
+|------|------------|-------------|
+| `cubism_status` | Check connection status, registration status, Allow/Edit authorization |
 
-### Inspection
+### Read/Write
 
 | Tool | Parameters | Description |
-|------|-----------|-------------|
+|------|------------|-----------|-------------|
 | `cubism_get_model_uid` | — | Get UID of the currently opened model |
-| `cubism_get_parameter_structure` | `model_uid` | Parameter structure tree (groups + params with Min/Default/Max) |
+| `cubism_get_documents` | — | List all open documents (modeling/physics/animation) |
+| `cubism_get_document` | `document_uid` | Get details of a single document by UID |
+| `cubism_get_current_edit_mode` | — | Get current edit mode (Physics/Modeling/Animation/…) |
+| `cubism_get_parameter_values` | `model_uid`, `ids?` | Read current model parameter values |
+| `cubism_set_parameter_values` | `model_uid`, `parameters[]` | Write parameter values (no edit transaction needed) |
+| `cubism_clear_parameter_values` | `model_uid` | Clear temp buffer from SetParameterValues |
+| `cubism_get_parameters` | `model_uid` | Parameter metadata (name/range/keyform/type) |
+| `cubism_get_parameter_groups` | `model_uid` | Parameter group list |
+
+### Structure Inspection (5.4 Alpha)
+
+| Tool | Parameters | Description |
+|------|------------|-----------|-------------|
+| `cubism_get_parameter_structure` | `model_uid` | Full parameter structure tree (groups + params hierarchy) |
 | `cubism_get_part_structure` | `model_uid` | Part structure tree (ArtMesh/Deformer/Part/Glue) |
 | `cubism_get_deformer_structure` | `model_uid` | Deformer structure tree |
-| `cubism_get_object` | `model_uid`, `id` | Get details of a specific object (varies by type) |
-| `cubism_get_selected` | `model_uid` | Get list of currently selected objects in Editor |
+| `cubism_get_object` | `model_uid`, `id` | Get details of a specific object |
+| `cubism_get_selected` | `model_uid` | Get currently selected objects in Editor |
 
-### Editing
+### Editing (5.4 Alpha)
 
 | Tool | Parameters | Description |
-|------|-----------|-------------|
+|------|------------|-----------|-------------|
 | `cubism_edit` | `action`, `params` | Execute a single edit operation (auto Begin/End) |
 | `cubism_edit_batch` | `actions[]` | Batch edit (single transaction, auto rollback on failure) |
 

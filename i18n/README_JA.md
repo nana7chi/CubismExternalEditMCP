@@ -24,7 +24,7 @@ AI Agent
     │
 ┌───▼──────────────────────┐
 │  cubism_mcp.py    │  ← 本プロジェクト
-│  (MCP サーバー, 9 ツール)   │
+│  (MCP サーバー, 17 ツール)  │
 └───┬──────────────────────┘
     │
     │ WebSocket (ws://localhost:22033)
@@ -37,8 +37,9 @@ AI Agent
 
 ## 機能
 
-- **モデルの完全な検査** — パラメータ構造、パーツ構造、デフォーマ構造、個別オブジェクトの詳細
-- **編集操作** — パラメータ/パーツ/デフォーマ/アートメッシュ/グルーの追加・編集・削除、自動トランザクション処理
+- **読み書き操作** — モデルのパラメータ値読み書き、ドキュメント一覧表示、編集モード取得（Editor 4.x 以降対応）
+- **モデルの完全な検査** — パラメータ構造、パーツ構造、デフォーマ構造、個別オブジェクトの詳細（5.4 Alpha が必要）
+- **編集操作** — パラメータ/パーツ/デフォーマ/アートメッシュ/グルーの追加・編集・削除、自動トランザクション処理（5.4 Alpha が必要）
 - **バッチ編集** — 単一トランザクションで複数操作を実行、失敗時は自動ロールバック
 - **権限の段階分け** — 参照には「許可」、編集には「編集」の承認が必要
 - **自動再接続** — Editor 再起動後、3 秒間隔で自動再接続
@@ -149,31 +150,42 @@ AI Agent で自然言語を使って Editor を操作します。例：
 「ParamAngleX にキーフォームを 3 つ一括追加」
 ```
 
-> **注意**：Cubism Editor を再起動するたびに、「外部アプリケーション連携の設定」のスイッチを再度オンにし、「許可」と「編集」の権限を再設定する必要があります。
-
 ## 利用可能なツール
 
 ### 診断
 
-| ツール | 説明 |
-|------|------|
-| `cubism_status` | 接続状態、登録状態、認証状態、編集認証を確認 |
+| ツール | APIバージョン | 説明 |
+|------|------------|------|
+| `cubism_status` | 接続状態、登録状態、許可/編集の認証状態を確認 |
 
-### 検査
+### 読み書き
 
-| ツール | パラメータ | 説明 |
-|------|-----------|------|
+| ツール | APIバージョン | パラメータ | 説明 |
+|------|------------|-----------|------|
 | `cubism_get_model_uid` | — | 現在開いているモデルの UID を取得 |
-| `cubism_get_parameter_structure` | `model_uid` | パラメータ構造ツリー（グループ+パラメータ、Min/Default/Max 付き） |
+| `cubism_get_documents` | — | 開いているすべてのドキュメントを一覧表示（モデリング/物理演算/アニメーション） |
+| `cubism_get_document` | `document_uid` | UID で単一ドキュメントの詳細を取得 |
+| `cubism_get_current_edit_mode` | — | 現在の編集モードを取得（Physics/Modeling/Animation/…） |
+| `cubism_get_parameter_values` | `model_uid`, `ids?` | モデルのパラメータ現在値を読み取り |
+| `cubism_set_parameter_values` | `model_uid`, `parameters[]` | パラメータ値を書き込み（編集トランザクション不要） |
+| `cubism_clear_parameter_values` | `model_uid` | SetParameterValues の一時バッファをクリア |
+| `cubism_get_parameters` | `model_uid` | パラメータのメタ情報（名前/範囲/キーフォーム/タイプ） |
+| `cubism_get_parameter_groups` | `model_uid` | パラメータグループ一覧 |
+
+### 構造の検査（5.4 Alpha 新規）
+
+| ツール | APIバージョン | パラメータ | 説明 |
+|------|------------|-----------|------|
+| `cubism_get_parameter_structure` | `model_uid` | 完全なパラメータ構造ツリー（グループ+パラメータ階層） |
 | `cubism_get_part_structure` | `model_uid` | パーツ構造ツリー（アートメッシュ/デフォーマ/パーツ/グルー） |
 | `cubism_get_deformer_structure` | `model_uid` | デフォーマ構造ツリー |
-| `cubism_get_object` | `model_uid`, `id` | 指定オブジェクトの詳細を取得（タイプにより構造が異なる） |
+| `cubism_get_object` | `model_uid`, `id` | 指定オブジェクトの詳細を取得 |
 | `cubism_get_selected` | `model_uid` | Editor で現在選択中のオブジェクト一覧を取得 |
 
-### 編集
+### 編集（5.4 Alpha 新規）
 
-| ツール | パラメータ | 説明 |
-|------|-----------|------|
+| ツール | APIバージョン | パラメータ | 説明 |
+|------|------------|-----------|------|
 | `cubism_edit` | `action`, `params` | 単一の編集操作を実行（EditBegin/EditEnd を自動処理） |
 | `cubism_edit_batch` | `actions[]` | バッチ編集（同一トランザクション、失敗時は自動ロールバック） |
 

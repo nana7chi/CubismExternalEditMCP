@@ -24,7 +24,7 @@ AI Agent
     │
 ┌───▼──────────────────────┐
 │  cubism_mcp.py    │  ← 본 프로젝트
-│  (MCP 서버, 9 도구)        │
+│  (MCP 서버, 17 도구)       │
 └───┬──────────────────────┘
     │
     │ WebSocket (ws://localhost:22033)
@@ -37,8 +37,9 @@ AI Agent
 
 ## 기능
 
-- **완전한 모델 검사** — 파라미터 구조, 파트 구조, 디포머 구조, 개별 오브젝트 상세
-- **편집 작업** — 파라미터/파트/디포머/아트메시/글루의 추가·편집·삭제, 자동 트랜잭션 처리
+- **읽기/쓰기 작업** — 모델 파라미터 값 읽기/쓰기, 문서 목록 확인, 편집 모드 가져오기 (Editor 4.x 이상 호환)
+- **완전한 모델 검사** — 파라미터 구조, 파트 구조, 디포머 구조, 개별 오브젝트 상세 (5.4 Alpha 필요)
+- **편집 작업** — 파라미터/파트/디포머/아트메시/글루의 추가·편집·삭제, 자동 트랜잭션 처리 (5.4 Alpha 필요)
 - **배치 편집** — 단일 트랜잭션으로 여러 작업 실행, 실패 시 자동 롤백
 - **권한 단계** — 조회는 「허용」, 편집은 「편집」 승인�� 필요
 - **자동 재접속** — Editor 재시작 후 3초 간격으로 자동 재접속
@@ -149,31 +150,42 @@ AI Agent에서 자연어로 Editor를 조작합니다. 예:
 "ParamAngleX에 키폼 3개 일괄 추가"
 ```
 
-> **주의**: Cubism Editor를 재시작할 때마�� 「외부 애플리케이션 연동 설정」 스위치를 다시 켜고 「허용」과 「편집」 권한을 다시 체크해야 합니다.
-
 ## 사용 가능한 도구
 
 ### 진단
 
-| 도구 | 설명 |
-|------|------|
-| `cubism_status` | 접속 상태, 등록 상태, 인증 상태, 편집 인증 확인 |
-
-### 검사
-
-| 도구 | 파라미터 | 설명 |
+| 도구 | API 버전 | 설명 |
 |------|---------|------|
+| `cubism_status` | 접속 상태, 등록 상태, 허용/편집 인증 확인 |
+
+### 읽기/쓰기
+
+| 도구 | API 버전 | 파라미터 | 설명 |
+|------|---------|---------|------|
 | `cubism_get_model_uid` | — | 현재 열려 있는 모델의 UID 가져오기 |
-| `cubism_get_parameter_structure` | `model_uid` | 파라미터 구조 트리 (그룹+파라미터, Min/Default/Max 포함) |
+| `cubism_get_documents` | — | 열린 모든 문서 나열 (모델링/물리/애니메이션) |
+| `cubism_get_document` | `document_uid` | UID로 단일 문서 상세 가져오기 |
+| `cubism_get_current_edit_mode` | — | 현재 편집 모드 가져오기 (Physics/Modeling/Animation/…) |
+| `cubism_get_parameter_values` | `model_uid`, `ids?` | 모델 파라미터 현재값 읽기 |
+| `cubism_set_parameter_values` | `model_uid`, `parameters[]` | 파라미터 값 쓰기 (편집 트랜잭션 불필요) |
+| `cubism_clear_parameter_values` | `model_uid` | SetParameterValues 임시 버퍼 초기화 |
+| `cubism_get_parameters` | `model_uid` | 파라미터 메타 정보 (이름/범위/키폼/타입) |
+| `cubism_get_parameter_groups` | `model_uid` | 파라미터 그룹 목록 |
+
+### 구조 검사 (5.4 Alpha 신규)
+
+| 도구 | API 버전 | 파라미터 | 설명 |
+|------|---------|---------|------|
+| `cubism_get_parameter_structure` | `model_uid` | 완전한 파라미터 구조 트리 (그룹+파라미터 계층) |
 | `cubism_get_part_structure` | `model_uid` | 파트 구조 트리 (아트메시/디포머/파트/글루) |
 | `cubism_get_deformer_structure` | `model_uid` | 디포머 구조 트리 |
-| `cubism_get_object` | `model_uid`, `id` | 지정된 오브젝트 상세 가져오기 (타입에 따라 구조 다름) |
-| `cubism_get_selected` | `model_uid` | Editor에서 현재 선택된 오브젝트 목록 가져오기 |
+| `cubism_get_object` | `model_uid`, `id` | 지정된 오브젝트 상세 가져오기 |
+| `cubism_get_selected` | `model_uid` | Editor에서 현재 선택된 오브젝트 목록 |
 
-### 편집
+### 편집 (5.4 Alpha 신규)
 
-| 도구 | 파라미터 | 설명 |
-|------|---------|------|
+| 도구 | API 버전 | 파라미터 | 설명 |
+|------|---------|---------|------|
 | `cubism_edit` | `action`, `params` | 단일 편집 작업 실행 (EditBegin/EditEnd 자동 처리) |
 | `cubism_edit_batch` | `actions[]` | 배치 편집 (동일 트랜잭션, 실패 시 자동 롤백) |
 

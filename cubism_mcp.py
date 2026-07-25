@@ -347,6 +347,142 @@ async def cubism_get_model_uid() -> str:
 
 
 @mcp.tool()
+async def cubism_get_current_edit_mode() -> str:
+    """获取 Editor 当前的编辑模式。
+
+    返回值: Physics/Modeling/Animation/ModelingMeshEdit/FormAnimation
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetCurrentEditMode", {})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_documents() -> str:
+    """列出 Editor 中当前打开的所有文档（工作区）。
+    按类型分为 PhysicsDocuments（物理模拟）、ModelingDocuments（模型编辑）、
+    AnimationDocuments（动画编辑），每种各为一个数组，无对应类型时为空数组。
+
+    无需 model_uid 参数，返回的是 Editor 全局打开的文档列表。
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetDocuments", {})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_document(document_uid: str) -> str:
+    """通过 DocumentUID 获取单个文档的详细信息。
+
+    Args:
+        document_uid: 文档 UID（可通过 cubism_get_documents 获取）
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetDocument", {"DocumentUID": document_uid})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_parameter_values(model_uid: str, ids: list[str] | None = None) -> str:
+    """获取模型当前的参数值。不指定 ids 则返回全部参数。
+
+    这是轻量级读取操作，无需 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID（可通过 cubism_get_model_uid 获取）
+        ids: 可选，要查询的参数 ID 列表。省略则返回所有参数
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    data = {"ModelUID": model_uid}
+    if ids:
+        data["Ids"] = ids
+    resp = await client.sendAndWait("GetParameterValues", data)
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_set_parameter_values(model_uid: str, parameters: list[dict]) -> str:
+    """设置模型的参数值。轻量级写入，无需 EditBegin/EditEnd 事务。
+
+    参数通过临时缓冲区生效，物理编辑器/动画模型中可能有延迟。
+    使用 ClearParameterValues 可显式清除临时缓存。
+
+    Args:
+        model_uid: 模型 UID
+        parameters: [{Id: 参数ID, Value: 数值}] 数组，例如 [{"Id":"ParamAngleX","Value":0.5}]
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("SetParameterValues", {
+        "ModelUID": model_uid,
+        "Parameters": parameters
+    })
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_clear_parameter_values(model_uid: str) -> str:
+    """清除发送到模型的临时参数值缓存。与 SetParameterValues 配套使用，
+    可显式将模型恢复到参数写入前的状态。
+
+    Args:
+        model_uid: 模型 UID
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("ClearParameterValues", {"ModelUID": model_uid})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_parameters(model_uid: str) -> str:
+    """获取模型参数的详细元信息（类型、范围、默认值、关键点、融合变形、循环等）。
+
+    比 cubism_get_parameter_values 多返回参数名称、类型、范围、GroupUID 等结构信息。
+
+    Args:
+        model_uid: 模型 UID
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetParameters", {"ModelUID": model_uid})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_parameter_groups(model_uid: str) -> str:
+    """获取模型的参数组列表（组 UID 和组名称）。
+
+    Args:
+        model_uid: 模型 UID
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetParameterGroups", {"ModelUID": model_uid})
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
 async def cubism_get_parameter_structure(model_uid: str) -> str:
     """获取模型的完整参数结构树（参数组 + 参数，含 Min/Default/Max/KeyValues）
 

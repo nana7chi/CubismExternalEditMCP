@@ -24,7 +24,7 @@ AI Agent
     │
 ┌───▼──────────────────────┐
 │  cubism_mcp.py    │  ← 本项目
-│  (MCP Server, 9 Tools)   │
+│  (MCP Server, 17 Tools)  │
 └───┬──────────────────────┘
     │
     │ WebSocket (ws://localhost:22033)
@@ -37,10 +37,11 @@ AI Agent
 
 ## 功能特性
 
-- **完整模型查询** — 参数结构、部件结构、变形器结构、单个对象详情
-- **编辑操作** — 增删改查参数/部件/变形器/ArtMesh/Glue，自动事务包裹
+- **读写操作** — 读取/写入模型参数值、查看文档列表、获取编辑模式（适用 Editor 4.x+）
+- **完整模型查询** — 参数结构、部件结构、变形器结构、单个对象详情（需 5.4 Alpha）
+- **编辑操作** — 增删改查参数/部件/变形器/ArtMesh/Glue，自动事务包裹（需 5.4 Alpha）
 - **批量编辑** — 同一事务内执行多个操作，任一失败自动回滚
-- **权限分级** — 查询需 Allow 授权，编辑需 Edit 授权
+- **权限分级** — 读写需 Allow 授权，编辑需 Edit 授权
 - **自动重连** — Editor 重启后自动重连，3 秒间隔
 - **Token 持久化** — 认证令牌缓存到 `~/.cubism-mcp/token.txt`，避免重复授权
 
@@ -155,24 +156,37 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 
 | 工具 | 说明 |
 |------|------|
-| `cubism_status` | 检查连接状态、注册状态、授权状态、编辑授权 |
+| `cubism_status` | 检查连接状态、注册状态、Allow/Edit 授权 |
 
-### 查询
+### 读写操作
 
 | 工具 | 参数 | 说明 |
 |------|------|------|
 | `cubism_get_model_uid` | — | 获取当前打开模型的 UID |
-| `cubism_get_parameter_structure` | `model_uid` | 参数结构树（组+参数，含 Min/Default/Max） |
-| `cubism_get_part_structure` | `model_uid` | 部件结构树（ArtMesh/Deformer/Part/Glue） |
-| `cubism_get_deformer_structure` | `model_uid` | 变形器结构树 |
-| `cubism_get_object` | `model_uid`, `id` | 获取指定对象详情（按类型返回不同结构） |
-| `cubism_get_selected` | `model_uid` | 获取 Editor 中当前选中的对象列表 |
+| `cubism_get_documents` | — | 列出所有打开的文档（建模/物理/动画） |
+| `cubism_get_document` | `document_uid` | 按 UID 获取单个文档详情 |
+| `cubism_get_current_edit_mode` | — | 获取编辑模式（Physics/Modeling/Animation/…） |
+| `cubism_get_parameter_values` | `model_uid`, `ids?` | 读取模型参数当前值 |
+| `cubism_set_parameter_values` | `model_uid`, `parameters[]` | 写入参数值（无需编辑事务） |
+| `cubism_clear_parameter_values` | `model_uid` | 清除 SetParameterValues 的临时缓存 |
+| `cubism_get_parameters` | `model_uid` | 参数元信息（名称/范围/Keyform/类型） |
+| `cubism_get_parameter_groups` | `model_uid` | 参数组列表 |
 
-### 编辑
+### 查询结构（5.4 Alpha 新增）
 
 | 工具 | 参数 | 说明 |
 |------|------|------|
-| `cubism_edit` | `action`, `params` | 执行单个编辑操作（自动 Begin/End） |
+| `cubism_get_parameter_structure` | `model_uid` | 参数完整结构树（组+参数层级） |
+| `cubism_get_part_structure` | `model_uid` | 部件结构树（ArtMesh/Deformer/Part/Glue） |
+| `cubism_get_deformer_structure` | `model_uid` | 变形器结构树 |
+| `cubism_get_object` | `model_uid`, `id` | 获取指定对象详情 |
+| `cubism_get_selected` | `model_uid` | 获取当前选中的对象列表 |
+
+### 编辑操作（5.4 Alpha 新增）
+
+| 工具 | 参数 | 说明 |
+|------|------|------|
+| `cubism_edit` | `action`, `params` | 执行单个编辑（自动 Begin/End 事务） |
 | `cubism_edit_batch` | `actions[]` | 批量编辑（同一事务，失败自动回滚） |
 
 #### 支持的编辑 Action
