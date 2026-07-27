@@ -97,7 +97,8 @@ Add the following MCP configuration:
       "type": "stdio",
       "command": "uvx",
       "args": ["--from", "git+https://github.com/nana7chi/CubismExternalEditMCP.git", "cubism-mcp"],
-      "description": "Cubism Editor MCP"
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
     }
   }
 }
@@ -121,7 +122,8 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
       "command": "python",
       "args": ["cubism_mcp.py"],
       "cwd": "J:/change/to/your/actual/path/CubismExternalEditMCP",
-      "description": "Cubism Editor MCP"
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
     }
   }
 }
