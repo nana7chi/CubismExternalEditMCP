@@ -107,7 +107,7 @@ class CEPluginClient:
         except Exception as e:
             logger.warning(f"连接 Cubism Editor 失败: {e}")
             if "proxy" in str(e).lower() or "socks" in str(e).lower():
-                logger.info("检测到代理拦截 localhost 连接，请在 MCP 配置中添加 env.NO_PROXY=localhost,127.0.0.1")
+                logger.info('检测到代理拦截 localhost 连接，请在 MCP 配置中添加 "env": { "NO_PROXY": "localhost,127.0.0.1" }')
             self.websocket = None
             return False
         return True
