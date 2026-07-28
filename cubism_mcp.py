@@ -106,6 +106,8 @@ class CEPluginClient:
             await self.registerPlugin()
         except Exception as e:
             logger.warning(f"连接 Cubism Editor 失败: {e}")
+            if "proxy" in str(e).lower() or "socks" in str(e).lower():
+                logger.info("检测到代理拦截 localhost 连接，请在 MCP 配置中添加 env.NO_PROXY=localhost,127.0.0.1")
             self.websocket = None
             return False
         return True
@@ -313,7 +315,7 @@ def _json(data, indent=None):
 async def cubism_status() -> str:
     """检查与 Cubism Editor 的连接及授权状态。未连接或未授权时会返回具体指引。"""
     _start_client()
-    await client.waitForRegistration(10)
+    await client.waitForRegistration(10)cu
     if client.websocket is None or not client.isRegistered:
         return _json({
             "connected": client.websocket is not None,
@@ -321,7 +323,7 @@ async def cubism_status() -> str:
             "approved": False,
             "edit_approved": False,
             "port": DEFAULT_PORT,
-            "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。"
+            "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。如日志提示 proxy/socks 错误，请在 MCP 配置中添加 env: {\"NO_PROXY\": \"localhost,127.0.0.1\"}。"
         }, indent=2)
     isAuth = await client.sendAndWait("GetIsApproval", {})
     isEdit = await client.sendAndWait("GetIsEditApproval", {})
