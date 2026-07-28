@@ -315,7 +315,7 @@ def _json(data, indent=None):
 async def cubism_status() -> str:
     """检查与 Cubism Editor 的连接及授权状态。未连接或未授权时会返回具体指引。"""
     _start_client()
-    await client.waitForRegistration(10)cu
+    await client.waitForRegistration(10)
     if client.websocket is None or not client.isRegistered:
         return _json({
             "connected": client.websocket is not None,
