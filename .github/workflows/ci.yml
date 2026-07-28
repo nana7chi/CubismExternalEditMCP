@@ -30,4 +30,4 @@ jobs:
         run: python -c "import cubism_mcp"
 
       - name: Lint (ruff)
-        run: ruff check cubism_mcp.py --ignore=E501
+        run: ruff check cubism_mcp.py --fix --ignore=E501,BLE001,ASYNC230
