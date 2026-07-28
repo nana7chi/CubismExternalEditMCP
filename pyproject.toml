@@ -1,13 +1,35 @@
 [project]
 name = "cubism-mcp"
-version = "1.0.0"
+version = "1.0.1"
 description = "MCP server for Live2D Cubism Editor external API integration"
+readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
+authors = [
+    {name = "nana7chi"},
+]
+keywords = ["mcp", "live2d", "cubism", "model-context-protocol"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Multimedia :: Graphics :: Editors",
+]
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2.0.0",
     "websockets>=12.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/nana7chi/CubismExternalEditMCP"
+Homepage = "https://github.com/nana7chi/CubismExternalEditMCP"
 
 [project.scripts]
 cubism-mcp = "cubism_mcp:cli"
@@ -18,3 +40,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 only-include = ["cubism_mcp.py"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "cubism_mcp.py",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE",
+]
