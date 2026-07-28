@@ -323,7 +323,7 @@ async def cubism_status() -> str:
             "approved": False,
             "edit_approved": False,
             "port": DEFAULT_PORT,
-            "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。如日志提示 proxy/socks 错误，请在 MCP 配置中添加 env: {\"NO_PROXY\": \"localhost,127.0.0.1\"}。"
+            "hint": "未连接到 Cubism Editor。请启动 Editor → 打开模型 → 「文件」→「外部应用程序集成的设置」→ 开启开关。连接成功后需在弹窗中勾选 Allow 和 Edit 权限。如日志提示 proxy/socks 错误，请在 MCP 配置中添加 \"env\": {\"NO_PROXY\": \"localhost,127.0.0.1\"}。"
         }, indent=2)
     isAuth = await client.sendAndWait("GetIsApproval", {})
     isEdit = await client.sendAndWait("GetIsEditApproval", {})
