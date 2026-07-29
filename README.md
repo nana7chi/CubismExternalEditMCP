@@ -17,22 +17,14 @@
 
 ## 架构
 
-```
-AI Agent
-    │
-    │ stdio (MCP Protocol)
-    │
-┌───▼──────────────────────┐
-│  cubism_mcp.py    │  ← 本项目
-│  (MCP Server, 17 Tools)  │
-└───┬──────────────────────┘
-    │
-    │ WebSocket (ws://localhost:22033)
-    │
-┌───▼──────────────────────┐
-│  Cubism Editor 5.4 Alpha │
-│  (外部应用集成 API)        │
-└──────────────────────────┘
+```mermaid
+graph TD
+    AI["AI Agent"]
+    MCP["cubism_mcp.py<br/>MCP Server, 17 Tools"]
+    Editor["Cubism Editor 5.4 Alpha<br/>外部应用集成 API"]
+
+    AI -->|"stdio (MCP Protocol)"| MCP
+    MCP -->|"WebSocket (ws://localhost:22033)"| Editor
 ```
 
 ## 功能特性

@@ -17,22 +17,14 @@ Live2D Cubism Editor의 외부 연동 API를 **MCP (Model Context Protocol)** �
 
 ## 아키텍처
 
-```
-AI Agent
-    │
-    │ stdio (MCP 프로토콜)
-    │
-┌───▼──────────────────────┐
-│  cubism_mcp.py    │  ← 본 프로젝트
-│  (MCP 서버, 17 도구)       │
-└───┬──────────────────────┘
-    │
-    │ WebSocket (ws://localhost:22033)
-    │
-┌───▼──────────────────────┐
-│  Cubism Editor 5.4 Alpha │
-│  (외부 연동 API)           │
-└──────────────────────────┘
+```mermaid
+graph TD
+    AI["AI Agent"]
+    MCP["cubism_mcp.py<br/>MCP 서버, 17 도구"]
+    Editor["Cubism Editor 5.4 Alpha<br/>외부 연동 API"]
+
+    AI -->|"stdio (MCP 프로토콜)"| MCP
+    MCP -->|"WebSocket (ws://localhost:22033)"| Editor
 ```
 
 ## 기능

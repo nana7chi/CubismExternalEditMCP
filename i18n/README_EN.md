@@ -17,22 +17,14 @@ Wrap the Live2D Cubism Editor External API as **MCP (Model Context Protocol)** t
 
 ## Architecture
 
-```
-AI Agent
-    │
-    │ stdio (MCP Protocol)
-    │
-┌───▼──────────────────────┐
-│  cubism_mcp.py    │  ← This Project
-│  (MCP Server, 17 Tools)  │
-└───┬──────────────────────┘
-    │
-    │ WebSocket (ws://localhost:22033)
-    │
-┌───▼──────────────────────┐
-│  Cubism Editor 5.4 Alpha │
-│  (External API Integration) │
-└──────────────────────────┘
+```mermaid
+graph TD
+    AI["AI Agent"]
+    MCP["cubism_mcp.py<br/>MCP Server, 17 Tools"]
+    Editor["Cubism Editor 5.4 Alpha<br/>External API Integration"]
+
+    AI -->|"stdio (MCP Protocol)"| MCP
+    MCP -->|"WebSocket (ws://localhost:22033)"| Editor
 ```
 
 ## Features
