@@ -84,9 +84,43 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 > 第一次启动会自动下载依赖包，耗时约 1–2 分钟，之后秒启。
 
-#### 方式一：uvx 在线运行（推荐）
+#### 方式一：PyPI 安装（推荐）
 
-添加以下MCP配置：
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+#### 国内镜像源配置
+
+如果 PyPI 官方源下载慢，可使用国内镜像（清华/阿里云/腾讯云等均可用）：
+
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--index-url", "https://pypi.tuna.tsinghua.edu.cn/simple", "cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+> 也可替换为阿里云 `https://mirrors.aliyun.com/pypi/simple` 或腾讯云 `https://mirrors.cloud.tencent.com/pypi/simple`。
+
+#### 方式二：uvx 在线运行（GitHub 源）
 
 ```json
 {
@@ -102,7 +136,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 }
 ```
 
-#### 方式二：本地克隆运行
+#### 方式三：本地克隆运行
 
 1. 克隆源码到本地(或下载ZIP并解压)
 

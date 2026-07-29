@@ -86,7 +86,43 @@ After installation, **restart your terminal** and run `uv --version` to verify.
 
 > The first launch auto-downloads dependencies (~1–2 min); subsequent starts are instant.
 
-#### Option 1: uvx One-Line (Recommended)
+#### Option 1: PyPI Install (Recommended)
+
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+#### Chinese Mirror Config
+
+If the official PyPI source is slow, use a Chinese mirror (Tsinghua/Alibaba/Tencent Cloud, etc.):
+
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--index-url", "https://pypi.tuna.tsinghua.edu.cn/simple", "cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+> You can also use Alibaba `https://mirrors.aliyun.com/pypi/simple` or Tencent Cloud `https://mirrors.cloud.tencent.com/pypi/simple`.
+
+#### Option 2: uvx One-Line (GitHub Source)
 
 Add the following MCP configuration:
 
@@ -104,7 +140,7 @@ Add the following MCP configuration:
 }
 ```
 
-#### Option 2: Local Clone
+#### Option 3: Local Clone
 
 1. Clone the repository (or download ZIP and extract):
 

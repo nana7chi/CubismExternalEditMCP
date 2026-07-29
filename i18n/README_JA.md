@@ -86,7 +86,43 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 > 初回起動時は依存パッケージの自動ダウンロードに約 1〜2 分かかります。以降は即時起動します。
 
-#### 方法 1：uvx オンライン実行（推奨）
+#### 方法 1：PyPI インストール（推奨）
+
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+#### 中国ミラー設定
+
+PyPI 公式が遅い場合は、中国ミラー（清華大学/Alibaba/Tencent Cloud など）を使用できます：
+
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--index-url", "https://pypi.tuna.tsinghua.edu.cn/simple", "cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+> Alibaba `https://mirrors.aliyun.com/pypi/simple` または Tencent Cloud `https://mirrors.cloud.tencent.com/pypi/simple` に置き換えも可能です。
+
+#### 方法 2：uvx オンライン実行（GitHub ソース）
 
 以下のMCP設定を追加：
 
@@ -104,7 +140,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 }
 ```
 
-#### 方法 2：ローカルクローン実行
+#### 方法 3：ローカルクローン実行
 
 1. ソースコードをクローン（またはZIPをダウンロードして解凍）
 

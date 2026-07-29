@@ -86,7 +86,43 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 > 최초 실행 시 종속 패키지 자동 다운로드에 약 1~2분 소요됩니다. 이후에는 즉시 시작됩니다.
 
-#### 방법 1: uvx 온라인 실행 (권장)
+#### 방법 1: PyPI 설치 (권장)
+
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+#### 중국 미러 설정
+
+PyPI 공식 소스가 느린 경우 중국 미러(칭화대/Alibaba/Tencent Cloud 등)를 사용하세요:
+
+```json
+{
+  "mcpServers": {
+    "cubism-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--index-url", "https://pypi.tuna.tsinghua.edu.cn/simple", "cubism-mcp"],
+      "description": "Cubism Editor MCP",
+      "env": { "NO_PROXY": "localhost,127.0.0.1" }
+    }
+  }
+}
+```
+
+> Alibaba `https://mirrors.aliyun.com/pypi/simple` 또는 Tencent Cloud `https://mirrors.cloud.tencent.com/pypi/simple`로도 변경 가능합니다.
+
+#### 방법 2: uvx 온라인 실행 (GitHub 소스)
 
 다음 MCP 설정 추가:
 
@@ -104,7 +140,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 }
 ```
 
-#### 방법 2: 로컬 클론 실행
+#### 방법 3: 로컬 클론 실행
 
 1. 소스 코드 클론 (또는 ZIP 다운로드 후 압축 해제)
 
