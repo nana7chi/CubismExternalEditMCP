@@ -21,7 +21,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install mcp websockets ruff
+        run: pip install "mcp<2.0.0" websockets ruff
 
       - name: Syntax check
         run: python -m py_compile cubism_mcp.py
