@@ -20,7 +20,7 @@ Wrap the Live2D Cubism Editor External API as **MCP (Model Context Protocol)** t
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP Server, 21 Tools"]
+    MCP["cubism_mcp.py<br/>MCP Server, 42 Tools"]
     Editor["Cubism Editor 5.4 Alpha<br/>External API Integration"]
 
     AI -->|"stdio (MCP Protocol)"| MCP

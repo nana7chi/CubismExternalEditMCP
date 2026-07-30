@@ -23,7 +23,6 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 import websockets
-
 from mcp.server.fastmcp import FastMCP
 
 # MCP 使用 stdio 协议，日志必须输出到 stderr，绝不能污染 stdout
@@ -532,60 +531,42 @@ async def cubism_get_deformer_structure(model_uid: str) -> str:
 
 
 @mcp.tool()
-async def cubism_get_object(model_uid: str, id: str) -> str:
-    """获取指定对象的信息（按 Type 返回不同数据结构：ArtMesh/Part/WarpDeformer/RotationDeformer/Glue）
+async def cubism_get_object(model_uid: str, id: str, parameters: list[dict] | None = None) -> str:
+    """获取指定对象的信息（按 Type 返回不同数据结构：ArtMesh/Part/WarpDeformer/RotationDeformer/Glue）。
+
+    可选 parameters 参数可按特定参数值获取对象在该状态下的数据。
 
     Args:
         model_uid: 模型 UID
         id: 对象 ID
+        parameters: 可选，关联参数 [{Id: "参数ID", Value: 数值}]，指定后返回该参数状态下的对象信息
     """
     _start_client()
     err = await client.ensureReady()
     if err:
         return _json(err)
-    resp = await client.sendAndWait("GetObject", {"ModelUID": model_uid, "Id": id})
+    data = {"ModelUID": model_uid, "Id": id}
+    if parameters:
+        data["Parameters"] = parameters
+    resp = await client.sendAndWait("GetObject", data)
     return _json(resp, indent=2)
 
 
 @mcp.tool()
 async def cubism_edit(action: EditAction, params: dict) -> str:
     """执行编辑操作。会自动处理 EditBegin/EditEnd。
-
-    Args:
-        action: 编辑 API 名称，如 AddParameter / EditPart / AddWarpDeformer
-        params: 编辑 API 的参数对象（无需 ModelUID，自动填充）
+    所有 Action 均已拆分为独立 Tool（带完整类型签名），建议直接使用对应 Tool。
+    cubism_edit 和 cubism_edit_batch 保留用于向后兼容和批量操作。
+    示例: cubism_edit(action="AddParameterKey", params={"ObjectId":"ArtMesh","ParameterId":"ParamAngleX","KeyValue":0.5})
     """
-    _start_client()
-    err = await client.ensureEditReady()
-    if err:
-        return _json(err)
-    modelUID_resp = await client.sendAndWait("GetCurrentModelUID", {})
-    modelUID = modelUID_resp.get("ModelUID", "")
-    params = dict(params)
-    params["ModelUID"] = modelUID
-
-    beginResp = await client.sendAndWait("EditBegin", {"Silent": False})
-    if "Error" in beginResp:
-        return _json(beginResp)
-
-    resp = None
-    try:
-        resp = await client.sendAndWait(action, params)
-    except Exception as e:
-        resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
-    finally:
-        # 无论编辑成功、失败还是异常，都必须关闭事务，否则 Editor 会停留在编辑模式
-        endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
-    return _json({
-        "action": action,
-        "result": resp,
-        "edit_end": endResp
-    }, indent=2)
+    return await _run_edit(action, params)
 
 
 @mcp.tool()
 async def cubism_edit_batch(actions: list[dict]) -> str:
     """批量执行多个编辑操作，在同一个 EditBegin/EditEnd 事务内完成。
+
+    各 Action 的参数格式参见 cubism_edit 工具的文档。
 
     Args:
         actions: [{action, params}] 数组，action 是编辑 API 名称，params 是该 API 的参数对象
@@ -594,8 +575,9 @@ async def cubism_edit_batch(actions: list[dict]) -> str:
     err = await client.ensureEditReady()
     if err:
         return _json(err)
-    modelUID_resp = await client.sendAndWait("GetCurrentModelUID", {})
-    modelUID = modelUID_resp.get("ModelUID", "")
+    modelUID = await _get_current_model_uid()
+    if isinstance(modelUID, dict):
+        return _json(modelUID)
 
     beginResp = await client.sendAndWait("EditBegin", {"Silent": False})
     if "Error" in beginResp:
@@ -606,11 +588,9 @@ async def cubism_edit_batch(actions: list[dict]) -> str:
     exception = None
     try:
         for i, act in enumerate(actions):
-            params = dict(act.get("params", {}))
-            params["ModelUID"] = modelUID
             await client.sendAndWait("EditSendProgress", {"Value": (i + 1) / len(actions)})
             await client.sendAndWait("EditSendLog", {"Message": f"[{i+1}/{len(actions)}] {act['action']}"})
-            resp = await client.sendAndWait(act["action"], params)
+            resp = await _run_step(act["action"], act.get("params", {}), modelUID)
             results.append({"action": act["action"], "result": resp})
             if "Error" in resp:
                 hasError = True
@@ -706,30 +686,7 @@ async def cubism_add_selected_objects(model_uid: str, ids: list[str]) -> str:
         model_uid: 模型 UID
         ids: 要添加到选中的对象 ID 列表
     """
-    _start_client()
-    err = await client.ensureEditReady()
-    if err:
-        return _json(err)
-
-    beginResp = await client.sendAndWait("EditBegin", {"Silent": True})
-    if "Error" in beginResp:
-        return _json(beginResp)
-
-    resp = None
-    try:
-        resp = await client.sendAndWait("AddSelectedObjects", {
-            "ModelUID": model_uid,
-            "Ids": ids
-        })
-    except Exception as e:
-        resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
-    finally:
-        endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
-    return _json({
-        "action": "AddSelectedObjects",
-        "result": resp,
-        "edit_end": endResp
-    }, indent=2)
+    return await _run_edit("AddSelectedObjects", {"Ids": ids}, silent=True, model_uid=model_uid)
 
 
 @mcp.tool()
@@ -741,29 +698,714 @@ async def cubism_clear_selected_objects(model_uid: str) -> str:
     Args:
         model_uid: 模型 UID
     """
+    return await _run_edit("ClearSelectedObjects", {}, silent=True, model_uid=model_uid)
+
+
+async def _get_current_model_uid(expected_uid: str | None = None) -> dict | str:
+    """获取 Editor 当前模型 UID，可选校验是否与期望值一致。
+    返回 model UID 字符串，或错误 dict。
+    """
+    resp = await client.sendAndWait("GetCurrentModelUID", {})
+    uid = resp.get("ModelUID", "")
+    if not uid:
+        return {"Error": {
+            "ErrorType": "NoModel",
+            "Message": "未获取到当前模型 UID，请确保已在 Editor 中打开模型"
+        }}
+    if expected_uid and expected_uid != uid:
+        return {"Error": {
+            "ErrorType": "ModelUIDMismatch",
+            "Message": f"指定的模型 UID ({expected_uid}) 与 Editor 当前打开的模型 ({uid}) 不一致"
+        }}
+    return uid
+
+
+async def _run_step(action: str, params: dict, model_uid: str) -> dict:
+    """执行单步编辑操作（假定事务已开启）。
+    负责：注入 ModelUID、发送命令、捕获异常。不管理 EditBegin/EditEnd。
+
+    Args:
+        action: 编辑 API 名称
+        params: 编辑 API 参数（不含 ModelUID）
+        model_uid: 已校验通过的当前模型 UID（由 _get_current_model_uid 返回）
+    Returns:
+        响应 dict（含可能 Error）
+    """
+    data = dict(params)
+    data["ModelUID"] = model_uid
+    try:
+        return await client.sendAndWait(action, data)
+    except Exception as e:
+        return {"Error": {"ErrorType": "Exception", "Message": str(e)}}
+
+
+async def _run_edit(action: str, params: dict, silent: bool = False, model_uid: str | None = None) -> str:
+    """内部辅助函数：带事务包裹的单次编辑操作。供独立 tool 和 cubism_edit 共用。
+
+    Args:
+        action: 编辑 API 名称
+        params: 编辑 API 参数（不含 ModelUID）
+        silent: 是否隐藏编辑对话框
+        model_uid: 可选，调用者指定的模型 UID。传入后会校验是否与 Editor 当前模型一致
+    """
     _start_client()
     err = await client.ensureEditReady()
     if err:
         return _json(err)
+    uid = await _get_current_model_uid(model_uid)
+    if isinstance(uid, dict):
+        return _json(uid)
 
-    beginResp = await client.sendAndWait("EditBegin", {"Silent": True})
+    beginResp = await client.sendAndWait("EditBegin", {"Silent": silent})
     if "Error" in beginResp:
         return _json(beginResp)
 
     resp = None
     try:
-        resp = await client.sendAndWait("ClearSelectedObjects", {
-            "ModelUID": model_uid
-        })
-    except Exception as e:
-        resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
+        resp = await _run_step(action, params, uid)
     finally:
         endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
     return _json({
-        "action": "ClearSelectedObjects",
+        "action": action,
         "result": resp,
         "edit_end": endResp
     }, indent=2)
+
+
+# ── 独立编辑 Tool（每个 action 有完整类型签名） ──
+
+
+@mcp.tool()
+async def cubism_add_parameter(
+    model_uid: str,
+    name: str | None = None,
+    id: str | None = None,
+    group_id: str | None = None,
+    min: float | None = None,
+    default: float | None = None,
+    max: float | None = None,
+    is_blend_shape: bool | None = None,
+) -> str:
+    """添加参数到模型。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        name: 参数名称
+        id: 参数 ID（省略则自动生成）
+        group_id: 所属参数组 ID。注意: GetParameterGroups 返回的是 GroupUID 格式，直接传入可能报错，建议省略此参数让参数添加到根级别
+        min: 最小值
+        default: 默认值
+        max: 最大值
+        is_blend_shape: 是否为融合变形参数
+    """
+    params = {}
+    if name is not None: params["Name"] = name
+    if id is not None: params["Id"] = id
+    if group_id is not None: params["GroupId"] = group_id
+    if min is not None: params["Min"] = min
+    if default is not None: params["Default"] = default
+    if max is not None: params["Max"] = max
+    if is_blend_shape is not None: params["IsBlendShape"] = is_blend_shape
+    return await _run_edit("AddParameter", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_edit_parameter(
+    model_uid: str,
+    id: str,
+    new_id: str | None = None,
+    name: str | None = None,
+    min: float | None = None,
+    default: float | None = None,
+    max: float | None = None,
+    is_repeat: bool | None = None,
+) -> str:
+    """编辑参数属性。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 参数 ID（必填）
+        new_id: 新参数 ID
+        name: 新参数名称
+        min: 最小值
+        default: 默认值
+        max: 最大值
+        is_repeat: 是否可循环
+    """
+    params = {"Id": id}
+    if new_id is not None: params["NewId"] = new_id
+    if name is not None: params["Name"] = name
+    if min is not None: params["Min"] = min
+    if default is not None: params["Default"] = default
+    if max is not None: params["Max"] = max
+    if is_repeat is not None: params["IsRepeat"] = is_repeat
+    return await _run_edit("EditParameter", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_delete_object(model_uid: str, id: str) -> str:
+    """从部件面板删除对象（ArtMesh/Deformer/Part/Glue 等任意类型均可）。
+    自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 要删除的对象 ID
+    """
+    return await _run_edit("DeleteObject", {"Id": id}, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_add_part(
+    model_uid: str,
+    name: str | None = None,
+    id: str | None = None,
+    draw_order: float | None = None,
+    ids: list[str] | None = None,
+    is_nested: bool | None = None,
+) -> str:
+    """添加部件。自动处理 EditBegin/EditEnd 事务。
+    注: AddPart API 不支持指定父部件，部件会添加到根级别。
+
+    Args:
+        model_uid: 模型 UID
+        name: 部件名称
+        id: 部件 ID（省略则自动生成）
+        draw_order: 绘制顺序 (0~1000)
+        ids: 要包含的子对象 ID 列表
+        is_nested: 是否将 ids 中的对象作为子元素嵌套
+    """
+    params = {}
+    if name is not None: params["Name"] = name
+    if id is not None: params["Id"] = id
+    if draw_order is not None: params["DrawOrder"] = draw_order
+    if ids is not None: params["Ids"] = ids
+    if is_nested is not None: params["IsNested"] = is_nested
+    return await _run_edit("AddPart", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_edit_part(
+    model_uid: str,
+    id: str,
+    new_id: str | None = None,
+    name: str | None = None,
+    parent_id: str | None = None,
+    is_grouped: bool | None = None,
+    is_guid_image: bool | None = None,
+    is_offscreen: bool | None = None,
+    clipping_ids: list[str] | None = None,
+    is_reverse_mask: bool | None = None,
+    draw_order: float | None = None,
+    opacity: float | None = None,
+    multiply_color: str | None = None,
+    screen_color: str | None = None,
+    color_blend: str | None = None,
+    alpha_blend: str | None = None,
+    label_color_type: str | None = None,
+    label_custom_color: str | None = None,
+) -> str:
+    """编辑部件属性。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 部件 ID（必填）
+        new_id: 新部件 ID
+        name: 新部件名称
+        parent_id: 父部件 ID
+        is_grouped: 是否分组
+        is_guid_image: 是否设为参考图像
+        is_offscreen: 是否离屏绘制
+        clipping_ids: 裁剪 ID 列表
+        is_reverse_mask: 是否反转遮罩
+        draw_order: 绘制顺序 (0~1000)
+        opacity: 不透明度 (0~100)
+        multiply_color: 正片叠底颜色 ("#000000"~"#FFFFFF")
+        screen_color: 滤色颜色
+        color_blend: 颜色混合模式
+        alpha_blend: Alpha 混合模式
+        label_color_type: 标签颜色类型
+        label_custom_color: 自定义标签颜色 ("#RRGGBB")
+    """
+    params = {"Id": id}
+    if new_id is not None: params["NewId"] = new_id
+    if name is not None: params["Name"] = name
+    if parent_id is not None: params["ParentId"] = parent_id
+    if is_grouped is not None: params["IsGrouped"] = is_grouped
+    if is_guid_image is not None: params["IsGuidImage"] = is_guid_image
+    if is_offscreen is not None: params["IsOffscreen"] = is_offscreen
+    if clipping_ids is not None: params["ClippingIds"] = clipping_ids
+    if is_reverse_mask is not None: params["IsReverseMask"] = is_reverse_mask
+    if draw_order is not None: params["DrawOrder"] = draw_order
+    if opacity is not None: params["Opacity"] = opacity
+    if multiply_color is not None: params["MultiplyColor"] = multiply_color
+    if screen_color is not None: params["ScreenColor"] = screen_color
+    if color_blend is not None: params["ColorBlend"] = color_blend
+    if alpha_blend is not None: params["AlphaBlend"] = alpha_blend
+    if label_color_type is not None: params["LabelColorType"] = label_color_type
+    if label_custom_color is not None: params["LabelCustomColor"] = label_custom_color
+    return await _run_edit("EditPart", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_edit_artmesh(
+    model_uid: str,
+    id: str,
+    new_id: str | None = None,
+    name: str | None = None,
+    parent_id: str | None = None,
+    parent_deformer_id: str | None = None,
+    clipping_ids: list[str] | None = None,
+    is_reverse_mask: bool | None = None,
+    draw_order: float | None = None,
+    opacity: float | None = None,
+    multiply_color: str | None = None,
+    screen_color: str | None = None,
+    color_blend: str | None = None,
+    alpha_blend: str | None = None,
+    is_culling: bool | None = None,
+    label_color_type: str | None = None,
+    label_custom_color: str | None = None,
+) -> str:
+    """编辑 ArtMesh 属性。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: ArtMesh ID（必填）
+        new_id: 新 ArtMesh ID
+        name: 新 ArtMesh 名称
+        parent_id: 父部件 ID
+        parent_deformer_id: 父变形器 ID
+        clipping_ids: 裁剪 ID 列表
+        is_reverse_mask: 是否反转遮罩
+        draw_order: 绘制顺序 (0~1000)
+        opacity: 不透明度 (0~100)
+        multiply_color: 正片叠底颜色
+        screen_color: 滤色颜色
+        color_blend: 颜色混合模式
+        alpha_blend: Alpha 混合模式
+        is_culling: 是否裁剪
+        label_color_type: 标签颜色类型
+        label_custom_color: 自定义标签颜色
+    """
+    params = {"Id": id}
+    if new_id is not None: params["NewId"] = new_id
+    if name is not None: params["Name"] = name
+    if parent_id is not None: params["ParentId"] = parent_id
+    if parent_deformer_id is not None: params["ParentDeformerId"] = parent_deformer_id
+    if clipping_ids is not None: params["ClippingIds"] = clipping_ids
+    if is_reverse_mask is not None: params["IsReverseMask"] = is_reverse_mask
+    if draw_order is not None: params["DrawOrder"] = draw_order
+    if opacity is not None: params["Opacity"] = opacity
+    if multiply_color is not None: params["MultiplyColor"] = multiply_color
+    if screen_color is not None: params["ScreenColor"] = screen_color
+    if color_blend is not None: params["ColorBlend"] = color_blend
+    if alpha_blend is not None: params["AlphaBlend"] = alpha_blend
+    if is_culling is not None: params["IsCulling"] = is_culling
+    if label_color_type is not None: params["LabelColorType"] = label_color_type
+    if label_custom_color is not None: params["LabelCustomColor"] = label_custom_color
+    return await _run_edit("EditArtMesh", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_edit_rotation_deformer(
+    model_uid: str,
+    id: str,
+    new_id: str | None = None,
+    name: str | None = None,
+    parent_id: str | None = None,
+    parent_deformer_id: str | None = None,
+    angle: float | None = None,
+    base_angle: float | None = None,
+    scale: float | None = None,
+    opacity: float | None = None,
+    multiply_color: str | None = None,
+    screen_color: str | None = None,
+    label_color_type: str | None = None,
+    label_custom_color: str | None = None,
+) -> str:
+    """编辑旋转变形器属性。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 旋转变形器 ID（必填）
+        new_id: 新变形器 ID
+        name: 新变形器名称
+        parent_id: 父部件 ID
+        parent_deformer_id: 父变形器 ID
+        angle: 角度
+        base_angle: 标准角度
+        scale: 缩放
+        opacity: 不透明度
+        multiply_color: 正片叠底颜色
+        screen_color: 滤色颜色
+        label_color_type: 标签颜色类型
+        label_custom_color: 自定义标签颜色
+    """
+    params = {"Id": id}
+    if new_id is not None: params["NewId"] = new_id
+    if name is not None: params["Name"] = name
+    if parent_id is not None: params["ParentId"] = parent_id
+    if parent_deformer_id is not None: params["ParentDeformerId"] = parent_deformer_id
+    if angle is not None: params["Angle"] = angle
+    if base_angle is not None: params["BaseAngle"] = base_angle
+    if scale is not None: params["Scale"] = scale
+    if opacity is not None: params["Opacity"] = opacity
+    if multiply_color is not None: params["MultiplyColor"] = multiply_color
+    if screen_color is not None: params["ScreenColor"] = screen_color
+    if label_color_type is not None: params["LabelColorType"] = label_color_type
+    if label_custom_color is not None: params["LabelCustomColor"] = label_custom_color
+    return await _run_edit("EditRotationDeformer", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_edit_warp_deformer(
+    model_uid: str,
+    id: str,
+    new_id: str | None = None,
+    name: str | None = None,
+    parent_id: str | None = None,
+    parent_deformer_id: str | None = None,
+    opacity: float | None = None,
+    multiply_color: str | None = None,
+    screen_color: str | None = None,
+    label_color_type: str | None = None,
+    label_custom_color: str | None = None,
+) -> str:
+    """编辑弯曲变形器属性。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 弯曲变形器 ID（必填）
+        new_id: 新变形器 ID
+        name: 新变形器名称
+        parent_id: 父部件 ID
+        parent_deformer_id: 父变形器 ID
+        opacity: 不透明度
+        multiply_color: 正片叠底颜色
+        screen_color: 滤色颜色
+        label_color_type: 标签颜色类型
+        label_custom_color: 自定义标签颜色
+    """
+    params = {"Id": id}
+    if new_id is not None: params["NewId"] = new_id
+    if name is not None: params["Name"] = name
+    if parent_id is not None: params["ParentId"] = parent_id
+    if parent_deformer_id is not None: params["ParentDeformerId"] = parent_deformer_id
+    if opacity is not None: params["Opacity"] = opacity
+    if multiply_color is not None: params["MultiplyColor"] = multiply_color
+    if screen_color is not None: params["ScreenColor"] = screen_color
+    if label_color_type is not None: params["LabelColorType"] = label_color_type
+    if label_custom_color is not None: params["LabelCustomColor"] = label_custom_color
+    return await _run_edit("EditWarpDeformer", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_edit_glue(
+    model_uid: str,
+    id: str,
+    new_id: str | None = None,
+    name: str | None = None,
+    parent_id: str | None = None,
+    intensity: float | None = None,
+    label_color_type: str | None = None,
+    label_custom_color: str | None = None,
+) -> str:
+    """编辑 Glue（胶水）属性。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: Glue ID（必填）
+        new_id: 新 Glue ID
+        name: 新 Glue 名称
+        parent_id: 父部件 ID
+        intensity: 兼容性 (0~100)
+        label_color_type: 标签颜色类型
+        label_custom_color: 自定义标���颜色
+    """
+    params = {"Id": id}
+    if new_id is not None: params["NewId"] = new_id
+    if name is not None: params["Name"] = name
+    if parent_id is not None: params["ParentId"] = parent_id
+    if intensity is not None: params["Intensity"] = intensity
+    if label_color_type is not None: params["LabelColorType"] = label_color_type
+    if label_custom_color is not None: params["LabelCustomColor"] = label_custom_color
+    return await _run_edit("EditGlue", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_delete_parameter(model_uid: str, id: str) -> str:
+    """删除参数。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 参数 ID
+    """
+    return await _run_edit("DeleteParameter", {"Id": id}, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_add_parameter_group(
+    model_uid: str,
+    name: str | None = None,
+    id: str | None = None,
+) -> str:
+    """添加参数组。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        name: 参数组名称
+        id: 参数组 ID（省略则自动生成）
+    """
+    params = {}
+    if name is not None: params["Name"] = name
+    if id is not None: params["Id"] = id
+    return await _run_edit("AddParameterGroup", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_edit_parameter_group(
+    model_uid: str,
+    id: str,
+    new_id: str | None = None,
+    name: str | None = None,
+    label_color_type: str | None = None,
+    label_custom_color: str | None = None,
+) -> str:
+    """编辑参数组属性。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 参数组 ID（必填）
+        new_id: 新参数组 ID
+        name: 新参数组名称
+        label_color_type: 标签颜色类型
+        label_custom_color: 自定义标签颜色 ("#RRGGBB")
+    """
+    params = {"Id": id}
+    if new_id is not None: params["NewId"] = new_id
+    if name is not None: params["Name"] = name
+    if label_color_type is not None: params["LabelColorType"] = label_color_type
+    if label_custom_color is not None: params["LabelCustomColor"] = label_custom_color
+    return await _run_edit("EditParameterGroup", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_delete_parameter_group(model_uid: str, id: str) -> str:
+    """删除参数组。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 参数组 ID
+    """
+    return await _run_edit("DeleteParameterGroup", {"Id": id}, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_move_parameter(
+    model_uid: str,
+    id: str,
+    group_id: str,
+    insert_index: float | None = None,
+) -> str:
+    """移动参数到指定参数组。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 参数 ID
+        group_id: 目标参数组 ID
+        insert_index: 插入位置的索引
+    """
+    params = {"Id": id, "GroupId": group_id}
+    if insert_index is not None: params["InsertIndex"] = insert_index
+    return await _run_edit("MoveParameter", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_move_parameter_group(
+    model_uid: str,
+    id: str,
+    insert_index: float,
+) -> str:
+    """调整参数组顺序。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 参数组 ID
+        insert_index: 目标索引
+    """
+    return await _run_edit("MoveParameterGroup", {"Id": id, "InsertIndex": insert_index}, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_add_parameter_key(
+    model_uid: str,
+    object_id: str,
+    parameter_id: str,
+    key_value: float,
+) -> str:
+    """为参数添加关键帧。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        object_id: 对象 ID
+        parameter_id: 参数 ID
+        key_value: 关键帧值
+    """
+    return await _run_edit("AddParameterKey", {
+        "ObjectId": object_id, "ParameterId": parameter_id, "KeyValue": key_value
+    }, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_delete_parameter_key(
+    model_uid: str,
+    object_id: str | None = None,
+    parameter_id: str | None = None,
+    key_value: float | None = None,
+    strict: bool | None = None,
+) -> str:
+    """删除参数关键帧。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        object_id: 对象 ID（省略则匹配所有对象）
+        parameter_id: 参数 ID（省略则匹配所有参数）
+        key_value: 关键帧值
+        strict: 是否严格匹配（默认 True）
+    """
+    params = {}
+    if object_id is not None: params["ObjectId"] = object_id
+    if parameter_id is not None: params["ParameterId"] = parameter_id
+    if key_value is not None: params["KeyValue"] = key_value
+    if strict is not None: params["Strict"] = strict
+    return await _run_edit("DeleteParameterKey", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_move_parameter_key(
+    model_uid: str,
+    from_value: float,
+    to_value: float,
+    object_id: str | None = None,
+    parameter_id: str | None = None,
+    strict: bool | None = None,
+    force_overwrite: bool | None = None,
+) -> str:
+    """移动参数关键帧位置。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        from_value: 源关键帧值
+        to_value: 目标关键帧值
+        object_id: 对象 ID
+        parameter_id: 参数 ID
+        strict: 是否严格匹配（默认 True）
+        force_overwrite: 是否强制覆盖目标位置的关键帧（默认 False）
+    """
+    params = {"FromValue": from_value, "ToValue": to_value}
+    if object_id is not None: params["ObjectId"] = object_id
+    if parameter_id is not None: params["ParameterId"] = parameter_id
+    if strict is not None: params["Strict"] = strict
+    if force_overwrite is not None: params["ForceOverwrite"] = force_overwrite
+    return await _run_edit("MoveParameterKey", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_add_warp_deformer(
+    model_uid: str,
+    name: str | None = None,
+    id: str | None = None,
+    parent_id: str | None = None,
+    target_object_ids: list[str] | None = None,
+    mode: str | None = None,
+    warp_div_h: float | None = None,
+    warp_div_v: float | None = None,
+    bezier_div_h: float | None = None,
+    bezier_div_v: float | None = None,
+    consider_child_keyforms: bool | None = None,
+    snap_center: bool | None = None,
+) -> str:
+    """添加弯曲变形器。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        name: 变形器名称
+        id: 变形器 ID（省略则自动生成）
+        parent_id: 父部件 ID
+        target_object_ids: 目标对象 ID 列表
+        mode: 父级关系模式 ("AsParent" 或 "AsChild")
+        warp_div_h: 水平转换分割数 (2~100)
+        warp_div_v: 垂直转换分割数 (2~100)
+        bezier_div_h: 水平贝塞尔分割数 (1~100)
+        bezier_div_v: 垂直贝塞尔分割数 (1~100)
+        consider_child_keyforms: 是否考虑子元素关键帧
+        snap_center: 是否居中
+    """
+    params = {}
+    if name is not None: params["Name"] = name
+    if id is not None: params["Id"] = id
+    if parent_id is not None: params["ParentId"] = parent_id
+    if target_object_ids is not None: params["TargetObjectIds"] = target_object_ids
+    if mode is not None: params["Mode"] = mode
+    if warp_div_h is not None: params["WarpDivH"] = warp_div_h
+    if warp_div_v is not None: params["WarpDivV"] = warp_div_v
+    if bezier_div_h is not None: params["BezierDivH"] = bezier_div_h
+    if bezier_div_v is not None: params["BezierDivV"] = bezier_div_v
+    if consider_child_keyforms is not None: params["ConsiderChildKeyforms"] = consider_child_keyforms
+    if snap_center is not None: params["SnapCenter"] = snap_center
+    return await _run_edit("AddWarpDeformer", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_add_rotation_deformer(
+    model_uid: str,
+    name: str | None = None,
+    id: str | None = None,
+    parent_id: str | None = None,
+    target_object_ids: list[str] | None = None,
+    mode: str | None = None,
+) -> str:
+    """添加旋转变形器。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        name: 变形器名称
+        id: 变形器 ID（省略则自动生成）
+        parent_id: 父部件 ID
+        target_object_ids: 目标对象 ID 列表
+        mode: 父级关系模式 ("AsParent" 或 "AsChild")
+    """
+    params = {}
+    if name is not None: params["Name"] = name
+    if id is not None: params["Id"] = id
+    if parent_id is not None: params["ParentId"] = parent_id
+    if target_object_ids is not None: params["TargetObjectIds"] = target_object_ids
+    if mode is not None: params["Mode"] = mode
+    return await _run_edit("AddRotationDeformer", params, model_uid=model_uid)
+
+
+@mcp.tool()
+async def cubism_move_object_on_parts_palette(
+    model_uid: str,
+    id: str,
+    parent_id: str | None = None,
+    insert_id: str | None = None,
+    insert_index: float | None = None,
+) -> str:
+    """在部件面板中移动对象位置。自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        id: 对象 ID
+        parent_id: 父级 ID
+        insert_id: 插入目标 ID
+        insert_index: 插入索引
+    """
+    params = {"Id": id}
+    if parent_id is not None: params["ParentId"] = parent_id
+    if insert_id is not None: params["InsertId"] = insert_id
+    if insert_index is not None: params["InsertIndex"] = insert_index
+    return await _run_edit("MoveObjectOnPartsPalette", params, model_uid=model_uid)
 
 
 def cli():

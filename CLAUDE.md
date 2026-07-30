@@ -37,7 +37,7 @@ AI Agent (WorkBuddy/Claude) ←→ stdio/MCP ←→ cubism_mcp.py ←→ WebSock
 
 | 文件 | 用途 |
 |------|------|
-| `cubism_mcp.py` | **唯一源码文件**（~880 行）。包含 MCP 工具定义 + WebSocket 客户端 |
+| `cubism_mcp.py` | **唯一源码文件**（~1400 行）。包含 42 个 MCP 工具 + WebSocket 客户端 |
 | `pyproject.toml` | 项目元数据，依赖 `mcp>=1.0.0` + `websockets>=12.0` |
 | `README.md` | 中文主文档 |
 | `i18n/README_{EN,JA,KO}.md` | 英/日/韩翻译文档 |
@@ -49,6 +49,16 @@ WebSocket 连接管理，负责：
 - `RegisterPlugin` 注册 + token 持久化到 `~/.cubism-mcp/token.txt`
 - 请求/响应匹配（`asyncio.Future` 机制，超时 15 秒）
 - 权限分级：`ensureReady()`（Allow 权限）/ `ensureEditReady()`（Allow + Edit 权限）
+
+### 编辑工具架构
+
+所有 21 个编辑 Action 均有独立 Tool（`cubism_add_parameter` 等），带完整类型签名和 JSON Schema。
+内部通过 `_run_edit(action, params, silent, model_uid)` 辅助函数统一处理：
+- 校验 `model_uid` 与 Editor 当前模型一致（不一致则报错）
+- 自动包裹 `EditBegin/EditEnd` 事务
+- 异常时自动 `Cancel` 回滚
+
+`cubism_edit` 和 `cubism_edit_batch` 保留用于向后兼容和批量操作。
 
 ### 权限模型
 

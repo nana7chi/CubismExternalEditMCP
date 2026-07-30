@@ -20,7 +20,7 @@ Live2D Cubism Editor の外部連携 API を **MCP (Model Context Protocol)** �
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP サーバー, 21 ツール"]
+    MCP["cubism_mcp.py<br/>MCP サーバー, 42 ツール"]
     Editor["Cubism Editor 5.4 Alpha<br/>外部連携 API"]
 
     AI -->|"stdio (MCP プロトコル)"| MCP
