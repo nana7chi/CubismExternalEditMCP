@@ -40,9 +40,10 @@ TOKEN_FILENAME = os.path.join(os.path.expanduser("~"), ".cubism-mcp", "token.txt
 # 支持的编辑 API 列表，用于 inputSchema 的 enum 约束，让客户端在发送前拦截无效 action
 EDIT_ACTIONS = [
     "AddParameter", "EditParameter", "DeleteParameter",
-    "AddParameterGroup", "EditParameterGroup",
+    "AddParameterGroup", "EditParameterGroup", "DeleteParameterGroup",
     "AddPart", "EditPart",
-    "AddWarpDeformer", "AddRotationDeformer", "EditWarpDeformer",
+    "AddWarpDeformer", "AddRotationDeformer",
+    "EditWarpDeformer", "EditRotationDeformer",
     "EditArtMesh", "EditGlue",
     "MoveParameter", "MoveParameterGroup",
     "AddParameterKey", "DeleteParameterKey", "MoveParameterKey",
@@ -52,9 +53,10 @@ EDIT_ACTIONS = [
 # 用 Literal 类型让 FastMCP 自动生成 enum 约束的 inputSchema
 EditAction = Literal[
     "AddParameter", "EditParameter", "DeleteParameter",
-    "AddParameterGroup", "EditParameterGroup",
+    "AddParameterGroup", "EditParameterGroup", "DeleteParameterGroup",
     "AddPart", "EditPart",
-    "AddWarpDeformer", "AddRotationDeformer", "EditWarpDeformer",
+    "AddWarpDeformer", "AddRotationDeformer",
+    "EditWarpDeformer", "EditRotationDeformer",
     "EditArtMesh", "EditGlue",
     "MoveParameter", "MoveParameterGroup",
     "AddParameterKey", "DeleteParameterKey", "MoveParameterKey",
@@ -644,6 +646,124 @@ async def cubism_get_selected(model_uid: str) -> str:
         return _json(err)
     resp = await client.sendAndWait("GetSelectedObjects", {"ModelUID": model_uid})
     return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_parameter_keys(model_uid: str, object_id: str) -> str:
+    """获取指定对象关联的参数关键帧值列表。
+
+    返回每个参数 ID 及其绑定的关键帧值（KeyValues 数组）。
+
+    Args:
+        model_uid: 模型 UID
+        object_id: 对象 ID（ArtMesh / Part / Deformer 等的 ID）
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetParameterKeys", {
+        "ModelUID": model_uid,
+        "ObjectId": object_id
+    })
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_get_objects_by_parameter_keys(
+    model_uid: str,
+    parameter_id: str,
+    key_value: float
+) -> str:
+    """按参数关键帧值反查关联的对象 ID 列表。
+
+    给定一个参数 ID 和关键帧值，返回所有在该关键帧上有绑定的对象 ID。
+
+    Args:
+        model_uid: 模型 UID
+        parameter_id: 参数 ID
+        key_value: 关键帧值
+    """
+    _start_client()
+    err = await client.ensureReady()
+    if err:
+        return _json(err)
+    resp = await client.sendAndWait("GetObjectsByParameterKeys", {
+        "ModelUID": model_uid,
+        "ParameterId": parameter_id,
+        "KeyValue": key_value
+    })
+    return _json(resp, indent=2)
+
+
+@mcp.tool()
+async def cubism_add_selected_objects(model_uid: str, ids: list[str]) -> str:
+    """将指定对象添加到 Editor 的当前选中状态（会保留已有选中项）。
+
+    需要 Edit 权限，自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+        ids: 要添加到选中的对象 ID 列表
+    """
+    _start_client()
+    err = await client.ensureEditReady()
+    if err:
+        return _json(err)
+
+    beginResp = await client.sendAndWait("EditBegin", {"Silent": True})
+    if "Error" in beginResp:
+        return _json(beginResp)
+
+    resp = None
+    try:
+        resp = await client.sendAndWait("AddSelectedObjects", {
+            "ModelUID": model_uid,
+            "Ids": ids
+        })
+    except Exception as e:
+        resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
+    finally:
+        endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
+    return _json({
+        "action": "AddSelectedObjects",
+        "result": resp,
+        "edit_end": endResp
+    }, indent=2)
+
+
+@mcp.tool()
+async def cubism_clear_selected_objects(model_uid: str) -> str:
+    """清除 Editor 中所有对象的选中状态。
+
+    需要 Edit 权限，自动处理 EditBegin/EditEnd 事务。
+
+    Args:
+        model_uid: 模型 UID
+    """
+    _start_client()
+    err = await client.ensureEditReady()
+    if err:
+        return _json(err)
+
+    beginResp = await client.sendAndWait("EditBegin", {"Silent": True})
+    if "Error" in beginResp:
+        return _json(beginResp)
+
+    resp = None
+    try:
+        resp = await client.sendAndWait("ClearSelectedObjects", {
+            "ModelUID": model_uid
+        })
+    except Exception as e:
+        resp = {"Error": {"ErrorType": "Exception", "Message": str(e)}}
+    finally:
+        endResp = await client.sendAndWait("EditEnd", {"Cancel": resp is None or "Error" in resp})
+    return _json({
+        "action": "ClearSelectedObjects",
+        "result": resp,
+        "edit_end": endResp
+    }, indent=2)
 
 
 def cli():
