@@ -371,6 +371,9 @@ async def cubism_get_current_edit_mode() -> str:
     """获取 Editor 当前的编辑模式。
 
     返回值: Physics/Modeling/Animation/ModelingMeshEdit/FormAnimation
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     _start_client()
     err = await client.ensureReady()
@@ -387,6 +390,9 @@ async def cubism_get_documents() -> str:
     AnimationDocuments（动画编辑），每种各为一个数组，无对应类型时为空数组。
 
     无需 model_uid 参数，返回的是 Editor 全局打开的文档列表。
+
+    Returns:
+        JSON {"PhysicsDocuments": [...], "ModelingDocuments": [...], "AnimationDocuments": [...]}
     """
     _start_client()
     err = await client.ensureReady()
@@ -402,6 +408,9 @@ async def cubism_get_document(document_uid: str) -> str:
 
     Args:
         document_uid: 文档 UID（可通过 cubism_get_documents 获取）
+
+    Returns:
+        JSON — Editor API 原始响应
     """
     _start_client()
     err = await client.ensureReady()
@@ -420,6 +429,9 @@ async def cubism_get_parameter_values(model_uid: str, ids: list[str] | None = No
     Args:
         model_uid: 模型 UID（可通过 cubism_get_model_uid 获取）
         ids: 可选，要查询的参数 ID 列表。省略则返回所有参数
+
+    Returns:
+        JSON {"Parameters": [{"Id": str, "Value": float}]}
     """
     _start_client()
     err = await client.ensureReady()
@@ -442,6 +454,9 @@ async def cubism_set_parameter_values(model_uid: str, parameters: list[dict]) ->
     Args:
         model_uid: 模型 UID
         parameters: [{Id: 参数ID, Value: 数值}] 数组，例如 [{"Id":"ParamAngleX","Value":0.5}]
+
+    Returns:
+        JSON — Editor API 原始响应
     """
     _start_client()
     err = await client.ensureReady()
@@ -461,6 +476,9 @@ async def cubism_clear_parameter_values(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     _start_client()
     err = await client.ensureReady()
@@ -478,6 +496,9 @@ async def cubism_get_parameters(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID
+
+    Returns:
+        JSON — 参数元信息数组
     """
     _start_client()
     err = await client.ensureReady()
@@ -493,6 +514,9 @@ async def cubism_get_parameter_groups(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID
+
+    Returns:
+        JSON {"Groups": [{"GroupUID": str, "GroupName": str}]}
     """
     _start_client()
     err = await client.ensureReady()
@@ -508,6 +532,9 @@ async def cubism_get_parameter_structure(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID（可通过 cubism_get_model_uid 获取）
+
+    Returns:
+        JSON — 层级结构树
     """
     _start_client()
     err = await client.ensureReady()
@@ -523,6 +550,9 @@ async def cubism_get_part_structure(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID
+
+    Returns:
+        JSON — 层级结构树
     """
     _start_client()
     err = await client.ensureReady()
@@ -538,6 +568,9 @@ async def cubism_get_deformer_structure(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID
+
+    Returns:
+        JSON — 层级结构树
     """
     _start_client()
     err = await client.ensureReady()
@@ -557,6 +590,9 @@ async def cubism_get_object(model_uid: str, id: str, parameters: list[dict] | No
         model_uid: 模型 UID
         id: 对象 ID
         parameters: 可选，关联参数 [{Id: "参数ID", Value: 数值}]，指定后返回该参数状态下的对象信息
+
+    Returns:
+        JSON {"Result": bool, "Type": str, "Data": {...}}
     """
     _start_client()
     err = await client.ensureReady()
@@ -574,10 +610,15 @@ async def cubism_edit(action: EditAction, params: dict) -> str:
     """执行编辑操作。会自动处理 EditBegin/EditEnd。
     所有 Action 均已拆分为独立 Tool（带完整类型签名），建议直接使用对应 Tool。
     cubism_edit 和 cubism_edit_batch 保留用于向后兼容和批量操作。
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     示例: cubism_edit(action="AddParameterKey", params={"ObjectId":"ArtMesh","ParameterId":"ParamAngleX","KeyValue":0.5})
 
     提示：若不确定某个枚举参数的有效值（如 ColorBlend、LabelColorType），可故意传无效值
     （如 "INVALID"），Editor 会在错误信息中返回完整的 Allowed values 列表。
+
+    Returns:
+        JSON — Editor API 原始响应
     """
     return await _run_edit(action, params)
 
@@ -589,7 +630,14 @@ async def cubism_edit_batch(actions: list[dict]) -> str:
     各 Action 的参数格式参见 cubism_edit 工具的文档。
 
     Args:
+    Returns:
+        JSON {"total": int, "completed": int, "cancelled": bool, "results": [{action, result}], "edit_end": {EditEnd响应}}
+
+    Args:
         actions: [{action, params}] 数组，action 是编辑 API 名称，params 是该 API 的参数对象
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     _start_client()
     err = await client.ensureEditReady()
@@ -639,6 +687,9 @@ async def cubism_get_selected(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID
+
+    Returns:
+        JSON [str]
     """
     _start_client()
     err = await client.ensureReady()
@@ -657,6 +708,9 @@ async def cubism_get_parameter_keys(model_uid: str, object_id: str) -> str:
     Args:
         model_uid: 模型 UID
         object_id: 对象 ID（ArtMesh / Part / Deformer 等的 ID）
+
+    Returns:
+        JSON {"Parameters": [{"Id": str, "KeyValues": [float]}]}
     """
     _start_client()
     err = await client.ensureReady()
@@ -683,6 +737,9 @@ async def cubism_get_objects_by_parameter_keys(
         model_uid: 模型 UID
         parameter_id: 参数 ID
         key_value: 关键帧值
+
+    Returns:
+        JSON {"Ids": [str]}
     """
     _start_client()
     err = await client.ensureReady()
@@ -705,6 +762,9 @@ async def cubism_add_selected_objects(model_uid: str, ids: list[str]) -> str:
     Args:
         model_uid: 模型 UID
         ids: 要添加到选中的对象 ID 列表
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     return await _run_edit("AddSelectedObjects", {"Ids": ids}, silent=True, model_uid=model_uid)
 
@@ -717,6 +777,9 @@ async def cubism_clear_selected_objects(model_uid: str) -> str:
 
     Args:
         model_uid: 模型 UID
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     return await _run_edit("ClearSelectedObjects", {}, silent=True, model_uid=model_uid)
 
@@ -817,6 +880,9 @@ async def cubism_add_parameter(
         default: 默认值
         max: 最大值
         is_blend_shape: 是否为融合变形参数
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {}
     if name is not None: params["Name"] = name
@@ -851,6 +917,9 @@ async def cubism_edit_parameter(
         default: 默认值
         max: 最大值
         is_repeat: 是否可循环
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
     if new_id is not None: params["NewId"] = new_id
@@ -870,6 +939,9 @@ async def cubism_delete_object(model_uid: str, id: str) -> str:
     Args:
         model_uid: 模型 UID
         id: 要删除的对象 ID
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     return await _run_edit("DeleteObject", {"Id": id}, model_uid=model_uid)
 
@@ -893,6 +965,9 @@ async def cubism_add_part(
         draw_order: 绘制顺序 (0~1000)
         ids: 要包含的子对象 ID 列表
         is_nested: 是否将 ids 中的对象作为子元素嵌套
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {}
     if name is not None: params["Name"] = name
@@ -907,6 +982,8 @@ async def cubism_add_part(
 async def cubism_edit_part(
     model_uid: str,
     id: str,
+    parameters: list[dict] | None = None,
+    is_exact_match: bool | None = None,
     new_id: str | None = None,
     name: str | None = None,
     parent_id: str | None = None,
@@ -945,8 +1022,13 @@ async def cubism_edit_part(
         alpha_blend: Alpha 混合模式
         label_color_type: 标签颜色类型
         label_custom_color: 自定义标签颜色 ("#RRGGBB")
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
+    if parameters is not None: params["Parameters"] = parameters
+    if is_exact_match is not None: params["IsExactMatch"] = is_exact_match
     if new_id is not None: params["NewId"] = new_id
     if name is not None: params["Name"] = name
     if parent_id is not None: params["ParentId"] = parent_id
@@ -970,6 +1052,8 @@ async def cubism_edit_part(
 async def cubism_edit_artmesh(
     model_uid: str,
     id: str,
+    parameters: list[dict] | None = None,
+    is_exact_match: bool | None = None,
     new_id: str | None = None,
     name: str | None = None,
     parent_id: str | None = None,
@@ -1006,8 +1090,13 @@ async def cubism_edit_artmesh(
         is_culling: 是否裁剪
         label_color_type: 标签颜色类型
         label_custom_color: 自定义标签颜色
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
+    if parameters is not None: params["Parameters"] = parameters
+    if is_exact_match is not None: params["IsExactMatch"] = is_exact_match
     if new_id is not None: params["NewId"] = new_id
     if name is not None: params["Name"] = name
     if parent_id is not None: params["ParentId"] = parent_id
@@ -1030,6 +1119,8 @@ async def cubism_edit_artmesh(
 async def cubism_edit_rotation_deformer(
     model_uid: str,
     id: str,
+    parameters: list[dict] | None = None,
+    is_exact_match: bool | None = None,
     new_id: str | None = None,
     name: str | None = None,
     parent_id: str | None = None,
@@ -1060,8 +1151,13 @@ async def cubism_edit_rotation_deformer(
         screen_color: 滤色颜色
         label_color_type: 标签颜色类型
         label_custom_color: 自定义标签颜色
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
+    if parameters is not None: params["Parameters"] = parameters
+    if is_exact_match is not None: params["IsExactMatch"] = is_exact_match
     if new_id is not None: params["NewId"] = new_id
     if name is not None: params["Name"] = name
     if parent_id is not None: params["ParentId"] = parent_id
@@ -1081,6 +1177,8 @@ async def cubism_edit_rotation_deformer(
 async def cubism_edit_warp_deformer(
     model_uid: str,
     id: str,
+    parameters: list[dict] | None = None,
+    is_exact_match: bool | None = None,
     new_id: str | None = None,
     name: str | None = None,
     parent_id: str | None = None,
@@ -1105,8 +1203,13 @@ async def cubism_edit_warp_deformer(
         screen_color: 滤色颜色
         label_color_type: 标签颜色类型
         label_custom_color: 自定义标签颜色
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
+    if parameters is not None: params["Parameters"] = parameters
+    if is_exact_match is not None: params["IsExactMatch"] = is_exact_match
     if new_id is not None: params["NewId"] = new_id
     if name is not None: params["Name"] = name
     if parent_id is not None: params["ParentId"] = parent_id
@@ -1123,6 +1226,8 @@ async def cubism_edit_warp_deformer(
 async def cubism_edit_glue(
     model_uid: str,
     id: str,
+    parameters: list[dict] | None = None,
+    is_exact_match: bool | None = None,
     new_id: str | None = None,
     name: str | None = None,
     parent_id: str | None = None,
@@ -1141,8 +1246,13 @@ async def cubism_edit_glue(
         intensity: 兼容性 (0~100)
         label_color_type: 标签颜色类型
         label_custom_color: 自定义标���颜色
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
+    if parameters is not None: params["Parameters"] = parameters
+    if is_exact_match is not None: params["IsExactMatch"] = is_exact_match
     if new_id is not None: params["NewId"] = new_id
     if name is not None: params["Name"] = name
     if parent_id is not None: params["ParentId"] = parent_id
@@ -1159,6 +1269,9 @@ async def cubism_delete_parameter(model_uid: str, id: str) -> str:
     Args:
         model_uid: 模型 UID
         id: 参数 ID
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     return await _run_edit("DeleteParameter", {"Id": id}, model_uid=model_uid)
 
@@ -1175,6 +1288,9 @@ async def cubism_add_parameter_group(
         model_uid: 模型 UID
         name: 参数组名称
         id: 参数组 ID（省略则自动生成）
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {}
     if name is not None: params["Name"] = name
@@ -1200,6 +1316,9 @@ async def cubism_edit_parameter_group(
         name: 新参数组名称
         label_color_type: 标签颜色类型
         label_custom_color: 自定义标签颜色 ("#RRGGBB")
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
     if new_id is not None: params["NewId"] = new_id
@@ -1216,6 +1335,9 @@ async def cubism_delete_parameter_group(model_uid: str, id: str) -> str:
     Args:
         model_uid: 模型 UID
         id: 参数组 ID
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     return await _run_edit("DeleteParameterGroup", {"Id": id}, model_uid=model_uid)
 
@@ -1234,6 +1356,9 @@ async def cubism_move_parameter(
         id: 参数 ID
         group_id: 目标参数组 ID
         insert_index: 插入位置的索引
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id, "GroupId": group_id}
     if insert_index is not None: params["InsertIndex"] = insert_index
@@ -1252,6 +1377,9 @@ async def cubism_move_parameter_group(
         model_uid: 模型 UID
         id: 参数组 ID
         insert_index: 目标索引
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     return await _run_edit("MoveParameterGroup", {"Id": id, "InsertIndex": insert_index}, model_uid=model_uid)
 
@@ -1270,6 +1398,9 @@ async def cubism_add_parameter_key(
         object_id: 对象 ID
         parameter_id: 参数 ID
         key_value: 关键帧值
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     return await _run_edit("AddParameterKey", {
         "ObjectId": object_id, "ParameterId": parameter_id, "KeyValue": key_value
@@ -1292,6 +1423,9 @@ async def cubism_delete_parameter_key(
         parameter_id: 参数 ID（省略则匹配所有参数）
         key_value: 关键帧值
         strict: 是否严格匹配（默认 True）
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {}
     if object_id is not None: params["ObjectId"] = object_id
@@ -1321,6 +1455,9 @@ async def cubism_move_parameter_key(
         parameter_id: 参数 ID
         strict: 是否严格匹配（默认 True）
         force_overwrite: 是否强制覆盖目标位置的关键帧（默认 False）
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"FromValue": from_value, "ToValue": to_value}
     if object_id is not None: params["ObjectId"] = object_id
@@ -1360,6 +1497,9 @@ async def cubism_add_warp_deformer(
         bezier_div_v: 垂直贝塞尔分割数 (1~100)
         consider_child_keyforms: 是否考虑子元素关键帧
         snap_center: 是否居中
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {}
     if name is not None: params["Name"] = name
@@ -1394,6 +1534,9 @@ async def cubism_add_rotation_deformer(
         parent_id: 父部件 ID
         target_object_ids: 目标对象 ID 列表
         mode: 父级关系模式 ("AsParent" 或 "AsChild")
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {}
     if name is not None: params["Name"] = name
@@ -1420,6 +1563,9 @@ async def cubism_move_object_on_parts_palette(
         parent_id: 父级 ID
         insert_id: 插入目标 ID
         insert_index: 插入索引
+
+    Returns:
+        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
     params = {"Id": id}
     if parent_id is not None: params["ParentId"] = parent_id
