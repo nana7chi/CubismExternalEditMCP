@@ -1,6 +1,6 @@
 [project]
 name = "cubism-mcp"
-version = "1.0.1"
+version = "1.0.3"
 description = "MCP server for Live2D Cubism Editor external API integration"
 readme = "README.md"
 requires-python = ">=3.10"
