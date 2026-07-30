@@ -122,6 +122,17 @@ WebSocket 连接管理，负责：
 push/PR 到 `dev`/`master` 自动运行：语法检查 + 导入检查 + ruff lint
 覆盖 Python 3.10 / 3.12
 
+## 枚举参数值获取
+
+官方 alpha1 文档中 `ColorBlend` / `AlphaBlend` / `LabelColorType` 等枚举参数的有效值藏在锚点内，WebFetch 可能抓不到。**可靠验证方法**：直接向 Editor API 传无效值（如 `"INVALID"`），Editor 会在错误信息中返回完整的 `Allowed values` 列表。
+
+实测结果（已验证）：
+- `ColorBlend`: `"normal"` `"add"` `"addglow"` `"darken"` `"multiply"` `"colorburn"` `"linearburn"` `"lighten"` `"screen"` `"colordodge"` `"overlay"` `"softlight"` `"hardlight"` `"linearlight"` `"hue"` `"color"` `"add_5.2"` `"multiply_5.2"`
+- `AlphaBlend`: `"over"` `"atop"` `"out"` `"conjoint"` `"disjoint"`
+- `LabelColorType`: `"undefined"` `"custom"` `"red"` `"orange"` `"yellow"` `"green"` `"blue"` `"purple"` `"gray"`
+- `Mode`（变形器）: `"AsParent"` `"AsChild"`
+- 注：Editor 存储归一化为小写，但输入大小写不敏感
+
 ## 官方文档参考
 
 ### 旧版外部集成 API（Editor 4.x+，协议 v0.9.x）

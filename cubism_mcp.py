@@ -61,6 +61,23 @@ EditAction = Literal[
     "AddParameterKey", "DeleteParameterKey", "MoveParameterKey",
     "DeleteObject", "MoveObjectOnPartsPalette",
 ]
+# 参数枚举类型（通过 Editor API 实测验证，非推断）
+# 测试方法：cubism_edit_artmesh 传入无效值，Editor 返回完整的 Allowed values 列表
+ColorBlendMode = Literal[
+    "normal", "add", "addglow", "darken", "multiply",
+    "colorburn", "linearburn", "lighten", "screen",
+    "colordodge", "overlay", "softlight", "hardlight",
+    "linearlight", "hue", "color",
+    "add_5.2", "multiply_5.2",
+]
+AlphaBlendMode = Literal[
+    "over", "atop", "out", "conjoint", "disjoint",
+]
+LabelColorType = Literal[
+    "undefined", "custom",
+    "red", "orange", "yellow", "green", "blue", "purple", "gray",
+]
+DeformerParentMode = Literal["AsParent", "AsChild"]
 
 
 class CEPluginClient:
@@ -558,6 +575,9 @@ async def cubism_edit(action: EditAction, params: dict) -> str:
     所有 Action 均已拆分为独立 Tool（带完整类型签名），建议直接使用对应 Tool。
     cubism_edit 和 cubism_edit_batch 保留用于向后兼容和批量操作。
     示例: cubism_edit(action="AddParameterKey", params={"ObjectId":"ArtMesh","ParameterId":"ParamAngleX","KeyValue":0.5})
+
+    提示：若不确定某个枚举参数的有效值（如 ColorBlend、LabelColorType），可故意传无效值
+    （如 "INVALID"），Editor 会在错误信息中返回完整的 Allowed values 列表。
     """
     return await _run_edit(action, params)
 
@@ -899,9 +919,9 @@ async def cubism_edit_part(
     opacity: float | None = None,
     multiply_color: str | None = None,
     screen_color: str | None = None,
-    color_blend: str | None = None,
-    alpha_blend: str | None = None,
-    label_color_type: str | None = None,
+    color_blend: ColorBlendMode | None = None,
+    alpha_blend: AlphaBlendMode | None = None,
+    label_color_type: LabelColorType | None = None,
     label_custom_color: str | None = None,
 ) -> str:
     """编辑部件属性。自动处理 EditBegin/EditEnd 事务。
@@ -960,10 +980,10 @@ async def cubism_edit_artmesh(
     opacity: float | None = None,
     multiply_color: str | None = None,
     screen_color: str | None = None,
-    color_blend: str | None = None,
-    alpha_blend: str | None = None,
+    color_blend: ColorBlendMode | None = None,
+    alpha_blend: AlphaBlendMode | None = None,
     is_culling: bool | None = None,
-    label_color_type: str | None = None,
+    label_color_type: LabelColorType | None = None,
     label_custom_color: str | None = None,
 ) -> str:
     """编辑 ArtMesh 属性。自动处理 EditBegin/EditEnd 事务。
@@ -1020,7 +1040,7 @@ async def cubism_edit_rotation_deformer(
     opacity: float | None = None,
     multiply_color: str | None = None,
     screen_color: str | None = None,
-    label_color_type: str | None = None,
+    label_color_type: LabelColorType | None = None,
     label_custom_color: str | None = None,
 ) -> str:
     """编辑旋转变形器属性。自动处理 EditBegin/EditEnd 事务。
@@ -1068,7 +1088,7 @@ async def cubism_edit_warp_deformer(
     opacity: float | None = None,
     multiply_color: str | None = None,
     screen_color: str | None = None,
-    label_color_type: str | None = None,
+    label_color_type: LabelColorType | None = None,
     label_custom_color: str | None = None,
 ) -> str:
     """编辑弯曲变形器属性。自动处理 EditBegin/EditEnd 事务。
@@ -1107,7 +1127,7 @@ async def cubism_edit_glue(
     name: str | None = None,
     parent_id: str | None = None,
     intensity: float | None = None,
-    label_color_type: str | None = None,
+    label_color_type: LabelColorType | None = None,
     label_custom_color: str | None = None,
 ) -> str:
     """编辑 Glue（胶水）属性。自动处理 EditBegin/EditEnd 事务。
@@ -1168,7 +1188,7 @@ async def cubism_edit_parameter_group(
     id: str,
     new_id: str | None = None,
     name: str | None = None,
-    label_color_type: str | None = None,
+    label_color_type: LabelColorType | None = None,
     label_custom_color: str | None = None,
 ) -> str:
     """编辑参数组属性。自动处理 EditBegin/EditEnd 事务。
@@ -1317,7 +1337,7 @@ async def cubism_add_warp_deformer(
     id: str | None = None,
     parent_id: str | None = None,
     target_object_ids: list[str] | None = None,
-    mode: str | None = None,
+    mode: DeformerParentMode | None = None,
     warp_div_h: float | None = None,
     warp_div_v: float | None = None,
     bezier_div_h: float | None = None,
@@ -1363,7 +1383,7 @@ async def cubism_add_rotation_deformer(
     id: str | None = None,
     parent_id: str | None = None,
     target_object_ids: list[str] | None = None,
-    mode: str | None = None,
+    mode: DeformerParentMode | None = None,
 ) -> str:
     """添加旋转变形器。自动处理 EditBegin/EditEnd 事务。
 
