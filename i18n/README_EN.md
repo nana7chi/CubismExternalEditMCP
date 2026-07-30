@@ -20,7 +20,7 @@ Wrap the Live2D Cubism Editor External API as **MCP (Model Context Protocol)** t
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP Server, 17 Tools"]
+    MCP["cubism_mcp.py<br/>MCP Server, 21 Tools"]
     Editor["Cubism Editor 5.4 Alpha<br/>External API Integration"]
 
     AI -->|"stdio (MCP Protocol)"| MCP
@@ -210,6 +210,8 @@ Control the Editor through natural language in your AI Agent, for example:
 | `cubism_get_deformer_structure` | `model_uid` | Deformer structure tree |
 | `cubism_get_object` | `model_uid`, `id` | Get details of a specific object |
 | `cubism_get_selected` | `model_uid` | Get currently selected objects in Editor |
+| `cubism_get_parameter_keys` | `model_uid`, `object_id` | Get keyframe bindings of an object |
+| `cubism_get_objects_by_parameter_keys` | `model_uid`, `parameter_id`, `key_value` | Reverse-lookup objects by parameter keyframes |
 
 ### Editing (5.4 Alpha)
 
@@ -217,6 +219,8 @@ Control the Editor through natural language in your AI Agent, for example:
 |------|------------|-----------|-------------|
 | `cubism_edit` | `action`, `params` | Execute a single edit operation (auto Begin/End) |
 | `cubism_edit_batch` | `actions[]` | Batch edit (single transaction, auto rollback on failure) |
+| `cubism_add_selected_objects` | `model_uid`, `ids[]` | Programmatically select objects (preserves existing selections) |
+| `cubism_clear_selected_objects` | `model_uid` | Clear all selected states |
 
 #### Supported Edit Actions
 
@@ -227,6 +231,7 @@ Control the Editor through natural language in your AI Agent, for example:
 | `DeleteParameter` | `Id` | Delete a parameter | "Delete the ParamTest parameter" |
 | `AddParameterGroup` | `GroupName`, `GroupId`, `ParentGroupId` | Add a parameter group | "Create a new parameter group 'TestGroup'" |
 | `EditParameterGroup` | `Id`, `GroupName`, `LabelColorType`, `LabelCustomColor` | Edit group properties | "Change the 'XYZ' group label color to blue" |
+| `DeleteParameterGroup` | `Id` | Delete a parameter group | "Delete the 'TestGroup' parameter group" |
 | `MoveParameter` | `Id`, `NewGroupId`, `InsertPosition` | Move parameter to a new position/group | "Move ParamTest to the top of the 'XYZ' group" |
 | `MoveParameterGroup` | `Id`, `InsertPosition` | Reorder parameter groups | "Move the 'Eyebrow' group to first position" |
 | `AddParameterKey` | `ParameterId`, `KeyValue` | Add a keyframe to a parameter | "Add a keyframe at 0.5 for ParamAngleX" |
@@ -237,6 +242,7 @@ Control the Editor through natural language in your AI Agent, for example:
 | `AddWarpDeformer` | `Name`, `Id`, `ParentId` | Add a warp deformer | "Create a warp deformer under 'FrontHair'" |
 | `AddRotationDeformer` | `Name`, `Id`, `ParentId` | Add a rotation deformer | "Create a rotation deformer under 'Head'" |
 | `EditWarpDeformer` | `Id`, `Name`, ... | Edit warp deformer properties | "Rename warp deformer 'Surface2' to 'Face'" |
+| `EditRotationDeformer` | `Id`, `Name`, `Angle`, `Scale`, ... | Edit rotation deformer properties | "Change face rotation angle to 15 degrees" |
 | `EditArtMesh` | `Id`, `Opacity`, ... | Edit ArtMesh properties | "Set ArtMesh 'LeftEye Highlight' opacity to 50%" |
 | `EditGlue` | `Id`, ... | Edit glue properties | "Adjust glue object weight" |
 | `DeleteObject` | `Id` | Delete an object from the parts palette | "Delete object with ID Warp999" |

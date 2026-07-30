@@ -20,7 +20,7 @@ Live2D Cubism Editor의 외부 연동 API를 **MCP (Model Context Protocol)** �
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP 서버, 17 도구"]
+    MCP["cubism_mcp.py<br/>MCP 서버, 21 도구"]
     Editor["Cubism Editor 5.4 Alpha<br/>외부 연동 API"]
 
     AI -->|"stdio (MCP 프로토콜)"| MCP
@@ -211,6 +211,8 @@ AI Agent에서 자연어로 Editor를 조작합니다. 예:
 | `cubism_get_deformer_structure` | `model_uid` | 디포머 구조 트리 |
 | `cubism_get_object` | `model_uid`, `id` | 지정된 오브젝트 상세 가져오기 |
 | `cubism_get_selected` | `model_uid` | Editor에서 현재 선택된 오브젝트 목록 |
+| `cubism_get_parameter_keys` | `model_uid`, `object_id` | 오브젝트의 키폼 바인딩 가져오기 |
+| `cubism_get_objects_by_parameter_keys` | `model_uid`, `parameter_id`, `key_value` | 파라미터 키폼으로 연결된 오브젝트 역조회 |
 
 ### 편집 (5.4 Alpha 신규)
 
@@ -218,6 +220,8 @@ AI Agent에서 자연어로 Editor를 조작합니다. 예:
 |------|---------|---------|------|
 | `cubism_edit` | `action`, `params` | 단일 편집 작업 실행 (EditBegin/EditEnd 자동 처리) |
 | `cubism_edit_batch` | `actions[]` | 배치 편집 (동일 트랜잭션, 실패 시 자동 롤백) |
+| `cubism_add_selected_objects` | `model_uid`, `ids[]` | 프로그래밍 방식으로 오브젝트 선택 (기존 선택 유지) |
+| `cubism_clear_selected_objects` | `model_uid` | 모든 선택 상태 해제 |
 
 #### 지원되는 편집 Action
 
@@ -228,6 +232,7 @@ AI Agent에서 자연어로 Editor를 조작합니다. 예:
 | `DeleteParameter` | `Id` | 파라미터 삭제 | 「ParamTest 파라미터 삭제」 |
 | `AddParameterGroup` | `GroupName`, `GroupId`, `ParentGroupId` | 파라미터 그룹 추가 | 「파라미터 그룹 '테스트 그룹' 생성」 |
 | `EditParameterGroup` | `Id`, `GroupName`, `LabelColorType`, `LabelCustomColor` | 그룹 속성 편집 | 「'XYZ' 그룹의 라벨 색상을 파란색으로 변경」 |
+| `DeleteParameterGroup` | `Id` | 파라미터 그룹 삭제 | 「'테스트 그룹' 파라미터 그룹 삭제」 |
 | `MoveParameter` | `Id`, `NewGroupId`, `InsertPosition` | 파라미터를 새 위치/그룹으로 이동 | 「ParamTest를 'XYZ' 그룹의 맨 앞으로 이동」 |
 | `MoveParameterGroup` | `Id`, `InsertPosition` | 파라미터 그룹 순서 변경 | 「'눈썹' 그룹을 첫 번째로 이동」 |
 | `AddParameterKey` | `ParameterId`, `KeyValue` | 파라미터에 키폼 추가 | 「ParamAngleX의 0.5 위치에 키폼 추가」 |
@@ -238,6 +243,7 @@ AI Agent에서 자연어로 Editor를 조작합니다. 예:
 | `AddWarpDeformer` | `Name`, `Id`, `ParentId` | 워프 디포머 추가 | 「'앞머리' 아래에 워프 디포머 생성」 |
 | `AddRotationDeformer` | `Name`, `Id`, `ParentId` | 회전 디포머 추가 | 「'머리' 아래에 회전 디포머 생성」 |
 | `EditWarpDeformer` | `Id`, `Name`, ... | 워프 디포머 속성 편집 | 「워프 디포머 '곡면2'의 이름을 '얼굴'로 변경」 |
+| `EditRotationDeformer` | `Id`, `Name`, `Angle`, `Scale`, ... | 회전 디포머 속성 편집 | 「얼굴 회전 각도를 15도로 변경」 |
 | `EditArtMesh` | `Id`, `Opacity`, ... | 아트메시 속성 편집 | 「아트메시 '왼쪽 눈 하이라이트'의 불투명도�� 50%로 변경」 |
 | `EditGlue` | `Id`, ... | 글루 속성 편집 | 「글루 오브젝트의 웨이트 조정」 |
 | `DeleteObject` | `Id` | 파트 팔레트에서 오브젝트 삭제 | 「ID Warp999 오브젝트 삭제」 |

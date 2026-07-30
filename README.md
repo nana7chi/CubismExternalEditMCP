@@ -20,7 +20,7 @@
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP Server, 17 Tools"]
+    MCP["cubism_mcp.py<br/>MCP Server, 21 Tools"]
     Editor["Cubism Editor 5.4 Alpha<br/>外部应用集成 API"]
 
     AI -->|"stdio (MCP Protocol)"| MCP
@@ -209,6 +209,8 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 | `cubism_get_deformer_structure` | `model_uid` | 变形器结构树 |
 | `cubism_get_object` | `model_uid`, `id` | 获取指定对象详情 |
 | `cubism_get_selected` | `model_uid` | 获取当前选中的对象列表 |
+| `cubism_get_parameter_keys` | `model_uid`, `object_id` | 获取对象的关键帧绑定关系 |
+| `cubism_get_objects_by_parameter_keys` | `model_uid`, `parameter_id`, `key_value` | 按参数关键帧反查关联对象 |
 
 ### 编辑操作（5.4 Alpha 新增）
 
@@ -216,6 +218,8 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 |------|------|------|
 | `cubism_edit` | `action`, `params` | 执行单个编辑（自动 Begin/End 事务） |
 | `cubism_edit_batch` | `actions[]` | 批量编辑（同一事务，失败自动回滚） |
+| `cubism_add_selected_objects` | `model_uid`, `ids[]` | 编程式选中对象（保留已有选中） |
+| `cubism_clear_selected_objects` | `model_uid` | 清除所有选中状态 |
 
 #### 支持的编辑 Action
 
@@ -226,6 +230,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 | `DeleteParameter` | `Id` | 删除参数 | "删除ParamTest参数" |
 | `AddParameterGroup` | `GroupName`, `GroupId`, `ParentGroupId` | 添加参数组 | "新建参数组'测试组'" |
 | `EditParameterGroup` | `Id`, `GroupName`, `LabelColorType`, `LabelCustomColor` | 编辑参数组属性 | "把'XYZ'组的标签色改成蓝色" |
+| `DeleteParameterGroup` | `Id` | 删除参数组 | "删除'测试组'参数组" |
 | `MoveParameter` | `Id`, `NewGroupId`, `InsertPosition` | 移动参数到新位置/组 | "把ParamTest移到'XYZ'组最前面" |
 | `MoveParameterGroup` | `Id`, `InsertPosition` | 调整参数组顺序 | "把'眉毛'组移到第一位" |
 | `AddParameterKey` | `ParameterId`, `KeyValue` | 给参数添加关键帧 | "给ParamAngleX在0.5处添加一个关键帧" |
@@ -236,6 +241,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 | `AddWarpDeformer` | `Name`, `Id`, `ParentId` | 添加弯曲变形器 | "在'前发'下新建一个弯曲变形器" |
 | `AddRotationDeformer` | `Name`, `Id`, `ParentId` | 添加旋转变形器 | "在'头部'下新建旋转变形器" |
 | `EditWarpDeformer` | `Id`, `Name`, ... | 编辑弯曲变形器属性 | "把WarpDeformer「曲面2」重命名为'脸部'" |
+| `EditRotationDeformer` | `Id`, `Name`, `Angle`, `Scale`, ... | 编辑旋转变形器属性 | "把脸的旋转角度改成15度" |
 | `EditArtMesh` | `Id`, `Opacity`, ... | 编辑图形网格属性 | "把ArtMesh「左眼高光」的不透明度改成50%" |
 | `EditGlue` | `Id`, ... | 编辑胶水属性 | "调整胶水对象的权重" |
 | `DeleteObject` | `Id` | 从部件面板删除对象 | "删除ID为Warp999的对象" |

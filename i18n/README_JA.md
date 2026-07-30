@@ -20,7 +20,7 @@ Live2D Cubism Editor の外部連携 API を **MCP (Model Context Protocol)** �
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP サーバー, 17 ツール"]
+    MCP["cubism_mcp.py<br/>MCP サーバー, 21 ツール"]
     Editor["Cubism Editor 5.4 Alpha<br/>外部連携 API"]
 
     AI -->|"stdio (MCP プロトコル)"| MCP
@@ -211,6 +211,8 @@ AI Agent で自然言語を使って Editor を操作します。例：
 | `cubism_get_deformer_structure` | `model_uid` | デフォーマ構造ツリー |
 | `cubism_get_object` | `model_uid`, `id` | 指定オブジェクトの詳細を取得 |
 | `cubism_get_selected` | `model_uid` | Editor で現在選択中のオブジェクト一覧を取得 |
+| `cubism_get_parameter_keys` | `model_uid`, `object_id` | オブジェクトのキーフォーム関連を取得 |
+| `cubism_get_objects_by_parameter_keys` | `model_uid`, `parameter_id`, `key_value` | パラメータのキーフォームから関連オブジェクトを逆引き |
 
 ### 編集（5.4 Alpha 新規）
 
@@ -218,6 +220,8 @@ AI Agent で自然言語を使って Editor を操作します。例：
 |------|------------|-----------|------|
 | `cubism_edit` | `action`, `params` | 単一の編集操作を実行（EditBegin/EditEnd を自動処理） |
 | `cubism_edit_batch` | `actions[]` | バッチ編集（同一トランザクション、失敗時は自動ロールバック） |
+| `cubism_add_selected_objects` | `model_uid`, `ids[]` | プログラムでオブジェクトを選択（既存の選択を保持） |
+| `cubism_clear_selected_objects` | `model_uid` | すべての選択状態を解除 |
 
 #### サポートされる編集 Action
 
@@ -228,6 +232,7 @@ AI Agent で自然言語を使って Editor を操作します。例：
 | `DeleteParameter` | `Id` | パラメータを削除 | 「ParamTest パラメータを削除」 |
 | `AddParameterGroup` | `GroupName`, `GroupId`, `ParentGroupId` | パラメータグループを追加 | 「パラメータグループ'テストグループ'を作成」 |
 | `EditParameterGroup` | `Id`, `GroupName`, `LabelColorType`, `LabelCustomColor` | グループプロパティを編集 | 「'XYZ'グループのラベル色を青に変更」 |
+| `DeleteParameterGroup` | `Id` | パラメータグループを削除 | 「'テストグループ'パラメータグループを削除」 |
 | `MoveParameter` | `Id`, `NewGroupId`, `InsertPosition` | パラメータを新しい位置/グループに移動 | 「ParamTest を'XYZ'グループの先頭に移動」 |
 | `MoveParameterGroup` | `Id`, `InsertPosition` | パラメータグループの順序を変更 | 「'眉毛'グループを先頭に移動」 |
 | `AddParameterKey` | `ParameterId`, `KeyValue` | パラメータにキーフォームを追加 | 「ParamAngleX の 0.5 にキーフォームを追加」 |
@@ -238,6 +243,7 @@ AI Agent で自然言語を使って Editor を操作します。例：
 | `AddWarpDeformer` | `Name`, `Id`, `ParentId` | ワープデフォーマを追加 | 「'前髪'の下にワープデフォーマを作成」 |
 | `AddRotationDeformer` | `Name`, `Id`, `ParentId` | 回転デフォーマを追加 | 「'頭'の下に回転デフォーマを作成」 |
 | `EditWarpDeformer` | `Id`, `Name`, ... | ワープデフォーマのプロパティを編集 | 「ワープデフォーマ'曲面2'の名前を'顔'に変更」 |
+| `EditRotationDeformer` | `Id`, `Name`, `Angle`, `Scale`, ... | 回転デフォーマのプロパティを編集 | 「顔の回転角度を15度に変更」 |
 | `EditArtMesh` | `Id`, `Opacity`, ... | アートメッシュのプロパティを編集 | 「アートメッシュ'左目ハイライト'の不透明度を50%に変更」 |
 | `EditGlue` | `Id`, ... | グルーのプロパティを編集 | 「グルーオブジェクトのウェイトを調整」 |
 | `DeleteObject` | `Id` | パーツパレットからオブジェクトを削除 | 「ID Warp999 のオブジェクトを削除」 |
