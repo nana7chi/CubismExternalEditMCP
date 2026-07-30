@@ -90,6 +90,8 @@ class CEPluginClient:
             with open(TOKEN_FILENAME, "r") as f:
                 self.TOKEN = f.read().strip()
         self.appName = "cubism-mcp"
+        self.icon = None   # 可选：Base64 PNG 图标（32×32~256×256，≤0.5MB）
+        self.path = None   # 可选：应用程序路径信息
         self.responseHandlers = {}
         self.eventHandlers = {}
         self.errorHandlers = {}
@@ -237,10 +239,17 @@ class CEPluginClient:
             self.isRegistered = True
             logger.info("已注册到 Cubism Editor")
 
-        await self.send("RegisterPlugin", {
+        payload = {
             "Token": self.TOKEN,
             "Name": self.appName
-        }, responseHandler=onReceive)
+        }
+        # 可选：Base64 PNG 图标（32×32~256×256，正方形，≤0.5MB）
+        if self.icon:
+            payload["Icon"] = self.icon
+        # 可选：应用程序路径信息
+        if self.path:
+            payload["Path"] = self.path
+        await self.send("RegisterPlugin", payload, responseHandler=onReceive)
 
     async def on_receive(self, message: str):
         jsonData = json.loads(message)
@@ -373,7 +382,7 @@ async def cubism_get_current_edit_mode() -> str:
     返回值: Physics/Modeling/Animation/ModelingMeshEdit/FormAnimation
 
     Returns:
-        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
+        JSON {"EditMode": "Modeling"|"Physics"|"Animation"|"ModelingMeshEdit"|"FormAnimation"}
     """
     _start_client()
     err = await client.ensureReady()
@@ -410,7 +419,8 @@ async def cubism_get_document(document_uid: str) -> str:
         document_uid: 文档 UID（可通过 cubism_get_documents 获取）
 
     Returns:
-        JSON — Editor API 原始响应
+        JSON {"ModelingDocuments": [{"DocumentFilePath": str, "Views": [{"ModelUID": str}]}],
+              "PhysicsDocuments": [...], "AnimationDocuments": [...]}
     """
     _start_client()
     err = await client.ensureReady()
@@ -456,7 +466,7 @@ async def cubism_set_parameter_values(model_uid: str, parameters: list[dict]) ->
         parameters: [{Id: 参数ID, Value: 数值}] 数组，例如 [{"Id":"ParamAngleX","Value":0.5}]
 
     Returns:
-        JSON — Editor API 原始响应
+        JSON {"Result": bool}
     """
     _start_client()
     err = await client.ensureReady()
@@ -478,7 +488,7 @@ async def cubism_clear_parameter_values(model_uid: str) -> str:
         model_uid: 模型 UID
 
     Returns:
-        JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
+        JSON {}
     """
     _start_client()
     err = await client.ensureReady()
@@ -489,31 +499,42 @@ async def cubism_clear_parameter_values(model_uid: str) -> str:
 
 
 @mcp.tool()
-async def cubism_get_parameters(model_uid: str) -> str:
+async def cubism_get_parameters(model_uid: str | None = None, document_uid: str | None = None) -> str:
     """获取模型参数的详细元信息（类型、范围、默认值、关键点、融合变形、循环等）。
 
     比 cubism_get_parameter_values 多返回参数名称、类型、范围、GroupUID 等结构信息。
+    model_uid 和 document_uid 至少提供一个，均省略会返回错误。
 
     Args:
-        model_uid: 模型 UID
+        model_uid: 模型 UID（可选，与 document_uid 二选一）
+        document_uid: 文档 UID（可选，与 model_uid 二选一）
 
     Returns:
-        JSON — 参数元信息数组
+        JSON {"Parameters": [{"Id":str,"Name":str,"GroupUID":str,"Default":float,"Max":float,"Min":float,"Repeat":bool,"Type":int,"Keyform":[{"Value":float}]}]}
+        Type: 0=正常, 1=融合变形
     """
     _start_client()
     err = await client.ensureReady()
     if err:
         return _json(err)
-    resp = await client.sendAndWait("GetParameters", {"ModelUID": model_uid})
+    data = {}
+    if model_uid is not None:
+        data["ModelUID"] = model_uid
+    if document_uid is not None:
+        data["DocumentUID"] = document_uid
+    resp = await client.sendAndWait("GetParameters", data)
     return _json(resp, indent=2)
 
 
 @mcp.tool()
-async def cubism_get_parameter_groups(model_uid: str) -> str:
+async def cubism_get_parameter_groups(model_uid: str | None = None, document_uid: str | None = None) -> str:
     """获取模型的参数组列表（组 UID 和组名称）。
 
+    model_uid 和 document_uid 至少提供一个，均省略会返回错误。
+
     Args:
-        model_uid: 模型 UID
+        model_uid: 模型 UID（可选，与 document_uid 二选一）
+        document_uid: 文档 UID（可选，与 model_uid 二选一）
 
     Returns:
         JSON {"Groups": [{"GroupUID": str, "GroupName": str}]}
@@ -522,7 +543,12 @@ async def cubism_get_parameter_groups(model_uid: str) -> str:
     err = await client.ensureReady()
     if err:
         return _json(err)
-    resp = await client.sendAndWait("GetParameterGroups", {"ModelUID": model_uid})
+    data = {}
+    if model_uid is not None:
+        data["ModelUID"] = model_uid
+    if document_uid is not None:
+        data["DocumentUID"] = document_uid
+    resp = await client.sendAndWait("GetParameterGroups", data)
     return _json(resp, indent=2)
 
 
@@ -534,7 +560,7 @@ async def cubism_get_parameter_structure(model_uid: str) -> str:
         model_uid: 模型 UID（可通过 cubism_get_model_uid 获取）
 
     Returns:
-        JSON — 层级结构树
+        JSON {"ParameterStructure": {"Name":str,"Id":str,"Entries":[{...recursive}]}}
     """
     _start_client()
     err = await client.ensureReady()
@@ -552,8 +578,7 @@ async def cubism_get_part_structure(model_uid: str) -> str:
         model_uid: 模型 UID
 
     Returns:
-        JSON — 层级结构树
-    """
+        JSON {"PartStructure": {"Name":str,"Id":str,"Type":str,"Entries":[{...recursive}]}}"""
     _start_client()
     err = await client.ensureReady()
     if err:
@@ -570,7 +595,7 @@ async def cubism_get_deformer_structure(model_uid: str) -> str:
         model_uid: 模型 UID
 
     Returns:
-        JSON — 层级结构树
+        JSON {"DeformerStructure": {"Name":str,"Id":str,"Type":str,"Entries":[{...recursive}]}}
     """
     _start_client()
     err = await client.ensureReady()
@@ -616,9 +641,6 @@ async def cubism_edit(action: EditAction, params: dict) -> str:
 
     提示：若不确定某个枚举参数的有效值（如 ColorBlend、LabelColorType），可故意传无效值
     （如 "INVALID"），Editor 会在错误信息中返回完整的 Allowed values 列表。
-
-    Returns:
-        JSON — Editor API 原始响应
     """
     return await _run_edit(action, params)
 
@@ -754,19 +776,19 @@ async def cubism_get_objects_by_parameter_keys(
 
 
 @mcp.tool()
-async def cubism_add_selected_objects(model_uid: str, ids: list[str]) -> str:
+async def cubism_add_selected_objects(model_uid: str, ids: list[str] | None = None) -> str:
     """将指定对象添加到 Editor 的当前选中状态（会保留已有选中项）。
 
     需要 Edit 权限，自动处理 EditBegin/EditEnd 事务。
 
     Args:
         model_uid: 模型 UID
-        ids: 要添加到选中的对象 ID 列表
+        ids: 要添加到选中的对象 ID 列表。省略则不添加任何对象（可用于仅测试 EditBegin/EditEnd）
 
     Returns:
         JSON {"action": "API名", "result": {API原始响应}, "edit_end": {EditEnd响应}}
     """
-    return await _run_edit("AddSelectedObjects", {"Ids": ids}, silent=True, model_uid=model_uid)
+    return await _run_edit("AddSelectedObjects", {"Ids": ids} if ids is not None else {}, silent=True, model_uid=model_uid)
 
 
 @mcp.tool()
