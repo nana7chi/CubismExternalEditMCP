@@ -10,34 +10,41 @@ python3 -m venv .venv
 .venv/bin/pip install -e .
 
 # 语法检查
-.venv/bin/python3 -c "import py_compile; py_compile.compile('cubism_mcp.py', doraise=True)"
+.venv/bin/python3 -c "import py_compile, glob; [py_compile.compile(f, doraise=True) for f in glob.glob('cubism_mcp/**/*.py', recursive=True)]"
 
 # 导入检查
 .venv/bin/python3 -c "import cubism_mcp"
 
 # Lint 检查（CI 同等）
 .venv/bin/pip install ruff
-.venv/bin/ruff check cubism_mcp.py --ignore E501,BLE001,ASYNC230
+.venv/bin/ruff check cubism_mcp/ --ignore E501,BLE001,ASYNC230
 
 # 本地开发时 MCP 配置（直接跑脚本，不用 uvx）
 # command: /Users/linjiashen/CubismExternalEditMCP/.venv/bin/python3
-# args: ["/Users/linjiashen/CubismExternalEditMCP/cubism_mcp.py"]
+# args: ["-m", "cubism_mcp"]
 # 注意：修改工具列表后需"先禁用 → 再启用"连接器才能强制重连
 ```
 
 ## 项目架构
 
-**单文件 Python 项目**，将 Live2D Cubism Editor（5.4 Alpha）的外部应用集成 API 封装为 MCP 服务器。
+**Python 包项目**，将 Live2D Cubism Editor（5.4 Alpha）的外部应用集成 API 封装为 MCP 服务器。
 
 ```
-AI Agent (WorkBuddy/Claude) ←→ stdio/MCP ←→ cubism_mcp.py ←→ WebSocket ←→ Cubism Editor (ws://localhost:22033)
+AI Agent (WorkBuddy/Claude) ←→ stdio/MCP ←→ cubism_mcp/ ←→ WebSocket ←→ Cubism Editor (ws://localhost:22033)
 ```
 
 ### 核心文件
 
 | 文件 | 用途 |
 |------|------|
-| `cubism_mcp.py` | **唯一源码文件**（~1400 行）。包含 42 个 MCP 工具 + WebSocket 客户端 |
+| `cubism_mcp/__init__.py` | 包入口，导出 `mcp` 和 `cli` |
+| `cubism_mcp/__main__.py` | 支持 `python -m cubism_mcp` 运行 |
+| `cubism_mcp/config.py` | 配置常量（端口、token 路径、logger、`_json` 辅助函数） |
+| `cubism_mcp/types.py` | `EditAction` 等 Literal 类型 + `EDIT_ACTIONS` 列表（从 Literal 自动派生） |
+| `cubism_mcp/client.py` | `CEPluginClient`（WebSocket 通信层，无 MCP 依赖） |
+| `cubism_mcp/server.py` | FastMCP 装配 + 读取/查询工具 + 通用编辑入口 + 选择操作 |
+| `cubism_mcp/tools/` | 编辑工具按域分模块（parameters/keyframes/parts/artmesh/deformers） |
+| `cubism_mcp/tools/_helpers.py` | 编辑事务辅助函数（`_run_edit`/`_run_step`/`_get_current_model_uid`） |
 | `pyproject.toml` | 项目元数据，依赖 `mcp>=1.0.0` + `websockets>=12.0` |
 | `README.md` | 中文主文档 |
 | `i18n/README_{EN,JA,KO}.md` | 英/日/韩翻译文档 |
@@ -82,11 +89,13 @@ WebSocket 连接管理，负责：
 
 ### 编辑 Action 添加规则
 
-当官方文档有新增编辑 API 时，需要在**两个地方**同步添加：
-1. `EDIT_ACTIONS` 列表（第 41-50 行）— 运行时 enum 校验
-2. `EditAction` Literal 类型（第 53-62 行）— MCP inputSchema 生成
+当官方文档有新增编辑 API 时：
 
-当前支持的 action 列表见 `EDIT_ACTIONS` 常量。
+1. 在 `cubism_mcp/types.py` 的 `EditAction` Literal 类型中添加新 action 名称
+2. `EDIT_ACTIONS` 列表会通过 `get_args(EditAction)` 自动派生，无需手动维护
+3. 在 `cubism_mcp/tools/` 对应域模块中添加独立的 `@mcp.tool()` 函数
+
+当前支持的 action 列表见 `cubism_mcp/types.py` 中的 `EditAction` 定义。
 
 ### API 版本兼容
 

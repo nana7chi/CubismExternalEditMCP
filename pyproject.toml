@@ -39,11 +39,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-only-include = ["cubism_mcp.py"]
+only-include = ["cubism_mcp"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "cubism_mcp.py",
+    "cubism_mcp",
     "pyproject.toml",
     "README.md",
     "LICENSE",

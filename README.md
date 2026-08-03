@@ -20,7 +20,7 @@
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP Server, 42 Tools"]
+    MCP["cubism_mcp/<br/>MCP Server, 42 Tools"]
     Editor["Cubism Editor 5.4 Alpha<br/>外部应用集成 API"]
 
     AI -->|"stdio (MCP Protocol)"| MCP
@@ -136,7 +136,14 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 ```
 
-2. 添加以下MCP配置（修改 `cwd` 为实际路径）：
+2. 安装依赖（推荐使用 `uv` 或虚拟环境）：
+
+```bash
+cd CubismExternalEditMCP
+uv sync                 # 或 python -m pip install -e .
+```
+
+3. 添加以下MCP配置（修改 `cwd` 为实际路径）：
 
 ```json
 {
@@ -144,7 +151,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
     "cubism-mcp": {
       "type": "stdio",
       "command": "python",
-      "args": ["cubism_mcp.py"],
+      "args": ["-m", "cubism_mcp"],
       "cwd": "J:/修改为实际路径/CubismExternalEditMCP",
       "description": "Cubism Editor MCP",
       "env": { "NO_PROXY": "localhost,127.0.0.1" }
@@ -286,7 +293,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
 
 ```bash
 # 直接运行测试
-python cubism_mcp.py
+python -m cubism_mcp
 
 # 依赖
 pip install -r requirements.txt

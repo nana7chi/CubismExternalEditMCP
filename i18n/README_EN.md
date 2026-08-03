@@ -20,7 +20,7 @@ Wrap the Live2D Cubism Editor External API as **MCP (Model Context Protocol)** t
 ```mermaid
 graph TD
     AI["AI Agent"]
-    MCP["cubism_mcp.py<br/>MCP Server, 42 Tools"]
+    MCP["cubism_mcp/<br/>MCP Server, 42 Tools"]
     Editor["Cubism Editor 5.4 Alpha<br/>External API Integration"]
 
     AI -->|"stdio (MCP Protocol)"| MCP
@@ -70,7 +70,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 After installation, **restart your terminal** and run `uv --version` to verify.
 
-> Don't want to install uv? You can also use a local Python (≥3.10) with `pip install -r requirements.txt` then `python cubism_mcp.py`, but you'll manage dependencies yourself.
+> Don't want to install uv? You can also use a local Python (≥3.10) with `pip install -r requirements.txt` then `python -m cubism_mcp`, but you'll manage dependencies yourself.
 
 ### Step 2: Configure MCP in your AI Agent
 
@@ -148,7 +148,7 @@ git clone https://github.com/nana7chi/CubismExternalEditMCP.git
     "cubism-mcp": {
       "type": "stdio",
       "command": "python",
-      "args": ["cubism_mcp.py"],
+      "args": ["-m", "cubism_mcp"],
       "cwd": "J:/change/to/your/actual/path/CubismExternalEditMCP",
       "description": "Cubism Editor MCP",
       "env": { "NO_PROXY": "localhost,127.0.0.1" }
@@ -263,7 +263,7 @@ Control the Editor through natural language in your AI Agent, for example:
 
 ```bash
 # Run directly for testing
-python cubism_mcp.py
+python -m cubism_mcp
 
 # Install dependencies
 pip install -r requirements.txt
